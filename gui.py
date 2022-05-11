@@ -1,18 +1,58 @@
 import tkinter as tk
+from tkinter import ttk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
+import difflib
+from collections import defaultdict
+import json
+import dbconnection
 
+theText = ""
+textCopy = theText
+
+def fileSelected():
+    pass
 def open_file():
+    global window
     """Open a file for editing."""
-    filepath = askopenfilename(
-    filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
-    )
-    if not filepath:
-        return
-    txt_edit.delete(1.0, tk.END)
-    with open(filepath, "r") as input_file:
-        text = input_file.read()
-        txt_edit.insert(tk.END, text)
-    window.title(f"Thecleverprogrammer - {filepath}")
+    # [(1, 'test')]
+    files = dbconnection.getAllFileNames()
+    
+    fileNames =[]
+    for file in files:
+        fileNames.append(file[1])
+
+    newWindow = tk.Toplevel(window)
+    newWindow.title("New Window")
+ 
+    newWindow.geometry("200x200")
+ 
+    tk.Label(newWindow,text ="Choose a File").pack()
+
+    variable = tk.StringVar(newWindow)
+    variable.set(fileNames[0])
+    sel = ttk.Combobox(newWindow, textvariable=variable, values = fileNames)
+    sel.pack()
+
+    B = tk.Button(newWindow, text="Select",command= fileSelected).pack()
+
+    # for file in files:
+    #     B = tk.Button(newWindow, text=file[1], width=50,).pack()
+
+    # global theText, textCopy
+    # filepath = askopenfilename(
+    # filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+    # )
+    # if not filepath:
+    #     return
+    # txt_edit.delete(1.0, tk.END)
+    # with open(filepath, "r") as input_file:
+    #     text = input_file.read()
+    #     txt_edit.insert(tk.END, text)
+    #     theText = text
+    #     textCopy = theText
+    # window.title(f"Thecleverprogrammer - {filepath}")
+
+
     
 def save_file():
     """Save the current file as a new file."""
@@ -55,10 +95,34 @@ class CustomText(tk.Text):
 
         return result
 
+def diff(original, copy):  
+    updates =defaultdict(list)
+    print('{} => {}'.format(original,copy)) 
+    for i,s in enumerate(difflib.ndiff(original, copy)):
+        if s[0]==' ': continue
+        elif s[0]=='-':
+            updates['delete'].append((s[-1],i))
+        elif s[0]=='+':
+            updates['insert'].append((s[-1],i))  
+    return updates
+
 def onModification(event):
-    print(repr(event.widget.get("1.0", "end-1c")))
-    print(txt_edit.index(tk.INSERT))
-    print(txt_edit.comm)
+    global theText, textCopy
+    if theText:
+        theText = event.widget.get("1.0", "end-1c")
+        updates = dict(diff(textCopy,theText))
+        textCopy = theText
+        st = json.dumps(updates)
+        print(updates)
+       
+        
+
+        # pickled = pickle.dumps(updates)
+        
+    # print(repr(event.widget.get("1.0", "end-1c")))
+    # print(txt_edit.index(tk.INSERT))
+    # print(txt_edit.comm)
+
 
 
 window = tk.Tk()
