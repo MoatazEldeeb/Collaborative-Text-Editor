@@ -7,6 +7,7 @@ import threading
 import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import json
+import dbconnection
 
 HEADER = 64
 PORT = 5050
@@ -64,9 +65,12 @@ def handle_client(conn, addr):
                 print(f"[{addr}] Disconnected")
                 conn.send("Message Recieved".encode(FORMAT))
 
-            elif isFile:
-                print(f"[{addr}] Opened file: {msg}")
-                filePath = msg
+            elif msg[:2] == "//" or isFile:
+                
+                fileId = int(msg[2:])
+                filePath=dbconnection.getPathOfFile(fileId)
+                # filePath = msg
+                print(f"[{addr}] Opened file: {filePath}")
                 if filePath in filePaths.values():
                     temp = '$'+str(theText[filePath])
                     conn.send(temp.encode(FORMAT))
@@ -103,6 +107,11 @@ def handle_client(conn, addr):
                             c.send(msg.encode(FORMAT))
                             
                 textCopy[filePath] = theText[filePath]
+            elif msg =="send list of files":
+                filesList= dbconnection.getAllFileNames()
+                print(filesList)
+                filesListJson=json.dumps(filesList)
+                conn.send((".."+filesListJson).encode(FORMAT))
 
             else:
                 conn.send("Message Recieved".encode(FORMAT))

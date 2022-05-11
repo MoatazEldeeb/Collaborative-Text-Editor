@@ -9,14 +9,15 @@ import dbconnection
 theText = ""
 textCopy = theText
 
-def fileSelected():
-    pass
+
 def open_file():
     global window
     """Open a file for editing."""
     # [(1, 'test')]
     files = dbconnection.getAllFileNames()
-    
+
+    h = dbconnection.getPathOfFile(1)
+    print(h)
     fileNames =[]
     for file in files:
         fileNames.append(file[1])
@@ -33,7 +34,7 @@ def open_file():
     sel = ttk.Combobox(newWindow, textvariable=variable, values = fileNames)
     sel.pack()
 
-    B = tk.Button(newWindow, text="Select",command= fileSelected).pack()
+    # B = tk.Button(newWindow, text="Select",command= fileSelected).pack()
 
     # for file in files:
     #     B = tk.Button(newWindow, text=file[1], width=50,).pack()

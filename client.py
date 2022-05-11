@@ -4,6 +4,7 @@ import socket
 import sys
 import threading
 import tkinter as tk
+from tkinter import ttk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import difflib
 import json
@@ -34,13 +35,32 @@ def applyDiff(text , changes):
 
     return text
 
+def fileSelected(file, fileNames):
+    
+    for f in fileNames:
+        if file == f[1]:
+            newWindow.destroy()
+            send("//"+str(f[0]))
+            return
+    
 def update(recieved):
     global textCopy, theText,flag
     if  recieved== "Message Recieved":
         print(recieved)
     
     elif recieved[0]=='$':
-        return recieved[1:]
+        #Recieve File Text
+        flag = True
+        txt_edit.delete(1.0, tk.END)
+        txt_edit.config(state=tk.NORMAL)
+
+        text =recieved[1:]
+        txt_edit.insert(tk.END, text)
+        theText = text
+        textCopy = theText
+        
+
+        flag = False
 
     elif is_json(recieved):
         flag =True
@@ -53,6 +73,29 @@ def update(recieved):
         flag =False
         print("the text: ",theText)
         print("the textCopy: ",textCopy)
+    
+    elif recieved[:2] == "..":
+        #Recieve list of file Names
+        fileNames = json.loads(recieved[2:])
+        print("fileNames",fileNames)
+        names =[]
+        for file in fileNames:
+            names.append(file[1])
+        global newWindow
+        newWindow = tk.Toplevel(window)
+        newWindow.title("New Window")
+    
+        newWindow.geometry("200x200")
+    
+        tk.Label(newWindow,text ="Choose a File").pack()
+
+        variable = tk.StringVar(newWindow)
+        variable.set(names[0])
+        sel = ttk.Combobox(newWindow, textvariable=variable, values = names)
+        sel.pack()
+        B = tk.Button(newWindow, text="Select",command= lambda: fileSelected(sel.get(),fileNames)).pack()
+
+
 
 def send(msg):
     message = msg.encode(FORMAT)
@@ -96,25 +139,26 @@ def is_json(myjson):
 def open_file():
     """Open a file for editing."""
     global theText,textCopy,flag
-    flag = True
-    filepath = askopenfilename(
-    filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
-    )
-    if not filepath:
-        return
-    txt_edit.delete(1.0, tk.END)
-    txt_edit.config(state=tk.NORMAL)
-    with open(filepath, "r") as input_file:
-        
-        text = sendd(filepath)
-        thread = threading.Thread(target=recievingUpdates, args= ())
-        thread.start()
-        # text = input_file.read()
-        txt_edit.insert(tk.END, text)
-        theText = text
-        textCopy = theText
-        flag = False
-    window.title(f"Thecleverprogrammer - {filepath}")
+    # flag = True
+    # filepath = askopenfilename(
+    # filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+    # )
+    # if not filepath:
+    #     return
+    # txt_edit.delete(1.0, tk.END)
+    # txt_edit.config(state=tk.NORMAL)
+    
+    send("send list of files")
+    
+    # text = sendd(filepath)
+    thread = threading.Thread(target=recievingUpdates, args= ())
+    thread.start()
+    # text = input_file.read()
+    # txt_edit.insert(tk.END, text)
+    # theText = text
+    # textCopy = theText
+    # flag = False
+    
     
     
     
