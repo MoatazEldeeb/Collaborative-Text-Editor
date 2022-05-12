@@ -25,15 +25,17 @@ filePaths ={}
 clients =[]
 
 def applyDiff(text , changes):
-
-    for x,y in changes.items():
-        if x =='insert':
-            for i in y:
-                text= text[:i[1]] + i[0] + text[i[1]:]
-        elif x == 'delete':
-            for i in y:
-                text = text[:i[1]] + text[i[1] + 1:]
-
+    print("Applying Diff => ", changes)
+    x = list(changes.keys())
+    y= list(changes.values())[0]
+    if "delete" in x:
+        dele =  y[0][1]+ len(y) -1
+        text = text[:y[0][1]] + text[dele+1:]
+        print(text)
+    if "insert" in x:
+        for i in y:
+            text= text[:i[1]] + i[0] + text[i[1]:]
+   
     return text
 
 def diff(original, copy):  
@@ -55,6 +57,7 @@ def handle_client(conn, addr):
     connected = True
     while connected:
         msgLength = conn.recv(HEADER).decode(FORMAT)
+        
         if msgLength:
             msgLength = int(msgLength)
             msg = conn.recv(msgLength).decode(FORMAT)
@@ -87,6 +90,8 @@ def handle_client(conn, addr):
                 d = json.loads(msg)
                 # print(f"Message is : {msg}")
                 # print(f"text copy before: {textCopy[filePath]}")
+                print("the text",theText[filePath])
+                print("copy",textCopy[filePath])
                 textCopy[filePath] = applyDiff(textCopy[filePath],d)
                 print(f"text copy: {textCopy[filePath]}")
                 
@@ -95,10 +100,11 @@ def handle_client(conn, addr):
 
                 updates = dict(diff(textCopy[filePath],theText[filePath]))
                 print(updates)
-
+        
                 
 
                 st = json.dumps(updates)
+                
                 for c in clients:
                     for n,f in filePaths.items():
                         
@@ -116,6 +122,8 @@ def handle_client(conn, addr):
             else:
                 conn.send("Message Recieved".encode(FORMAT))
             print(f"[{addr}] {msg}")
+
+        
             
     conn.close()
 

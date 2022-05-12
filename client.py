@@ -24,15 +24,17 @@ textCopy = theText
 flag = False
 
 def applyDiff(text , changes):
-
-    for x,y in changes.items():
-        if x =='insert':
-            for i in y:
-                text= text[:i[1]] + i[0] + text[i[1]:]
-        elif x == 'delete':
-            for i in y:
-                text = text[:i[1]] + text[i[1] + 1:]
-
+    print("Applying Diff => ", changes)
+    x = list(changes.keys())
+    y= list(changes.values())[0]
+    if "delete" in x:
+        dele =  y[0][1]+ len(y) -1
+        text = text[:y[0][1]] + text[dele+1:]
+        print(text)
+    if "insert" in x:
+        for i in y:
+            text= text[:i[1]] + i[0] + text[i[1]:]
+   
     return text
 
 def fileSelected(file, fileNames):
@@ -66,11 +68,15 @@ def update(recieved):
         flag =True
         txt_edit.delete(1.0, tk.END)
         diff = json.loads(recieved)
+
         textCopy = applyDiff(textCopy,diff)
         theText = applyDiff(theText,diff)
 
+        textCopy = theText
+        
         txt_edit.insert(tk.END, theText)
         flag =False
+        
         print("the text: ",theText)
         print("the textCopy: ",textCopy)
     
@@ -94,6 +100,14 @@ def update(recieved):
         sel = ttk.Combobox(newWindow, textvariable=variable, values = names)
         sel.pack()
         B = tk.Button(newWindow, text="Select",command= lambda: fileSelected(sel.get(),fileNames)).pack()
+    else:
+        theText =recieved
+        textCopy = theText
+        flag =True
+        txt_edit.delete(1.0, tk.END)
+        txt_edit.insert(tk.END, theText)
+        flag=False
+
 
 
 
@@ -253,8 +267,8 @@ def on_closing():
 
 window = tk.Tk()
 window.title("Thecleverprogrammer")
-window.rowconfigure(0, minsize=400, weight=1)
-window.columnconfigure(1, minsize=400, weight=1)
+window.rowconfigure(0, minsize=300, weight=1)
+window.columnconfigure(1, minsize=300, weight=1)
 window.protocol("WM_DELETE_WINDOW", on_closing)
 
 txt_edit = CustomText(window)
