@@ -90,27 +90,30 @@ def handle_client(conn, addr):
                 d = json.loads(msg)
                 # print(f"Message is : {msg}")
                 # print(f"text copy before: {textCopy[filePath]}")
-                print("the text",theText[filePath])
-                print("copy",textCopy[filePath])
+                # print("the text",theText[filePath])
+                # print("copy",textCopy[filePath])
                 textCopy[filePath] = applyDiff(textCopy[filePath],d)
-                print(f"text copy: {textCopy[filePath]}")
+                # print(f"text copy: {textCopy[filePath]}")
                 
                 theText[filePath] = applyDiff(theText[filePath],d)
-                print(f"The text : {theText[filePath]}")
+                # print(f"The text : {theText[filePath]}")
 
                 updates = dict(diff(textCopy[filePath],theText[filePath]))
-                print(updates)
+                # print(updates)
         
-                
 
-                st = json.dumps(updates)
-                
+                # st = json.dumps(updates)
+                # print(st)
+
                 for c in clients:
-                    for n,f in filePaths.items():
+                    for f in filePaths.values():
                         
-                        print("c = ",c.getpeername(),"|| n =",n)
+                        # print("c = ",c.getpeername(),"|| n =",n)
                         if f==filePath and not c.getpeername() == conn.getpeername():
-                            c.send(msg.encode(FORMAT))
+                            # c.send(msg.encode(FORMAT))
+                            c.send(('$'+textCopy[filePath]).encode(FORMAT))
+                
+                        
                             
                 textCopy[filePath] = theText[filePath]
             elif msg =="send list of files":

@@ -13,7 +13,7 @@ HEADER = 64
 PORT = 5050
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
-SERVER = "192.168.1.104"
+SERVER = "172.20.10.3"
 ADDR = (SERVER, PORT)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
