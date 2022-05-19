@@ -62,15 +62,15 @@ def handle_client(conn, addr):
             msgLength = int(msgLength)
             msg = conn.recv(msgLength).decode(FORMAT)
 
-            isFile = os.path.isfile(msg)
             if msg == DISCONNECT_MSG:
                 connected = False
                 print(f"[{addr}] Disconnected")
                 conn.send("Message Recieved".encode(FORMAT))
 
-            elif msg[:2] == "//" or isFile:
+            elif msg[:2] == "//":
                 
                 fileId = int(msg[2:])
+                print("FILE ID",fileId)
                 filePath=dbconnection.getPathOfFile(fileId)
                 # filePath = msg
                 print(f"[{addr}] Opened file: {filePath}")
@@ -88,29 +88,17 @@ def handle_client(conn, addr):
                         
             elif is_json(msg): 
                 d = json.loads(msg)
-                # print(f"Message is : {msg}")
-                # print(f"text copy before: {textCopy[filePath]}")
-                # print("the text",theText[filePath])
-                # print("copy",textCopy[filePath])
                 textCopy[filePath] = applyDiff(textCopy[filePath],d)
-                # print(f"text copy: {textCopy[filePath]}")
                 
                 theText[filePath] = applyDiff(theText[filePath],d)
-                # print(f"The text : {theText[filePath]}")
 
                 updates = dict(diff(textCopy[filePath],theText[filePath]))
-                # print(updates)
-        
-
-                # st = json.dumps(updates)
-                # print(st)
+              
 
                 for c in clients:
                     for f in filePaths.values():
                         
-                        # print("c = ",c.getpeername(),"|| n =",n)
                         if f==filePath and not c.getpeername() == conn.getpeername():
-                            # c.send(msg.encode(FORMAT))
                             c.send(('$'+textCopy[filePath]).encode(FORMAT))
                 
                         
@@ -122,6 +110,11 @@ def handle_client(conn, addr):
                 filesListJson=json.dumps(filesList)
                 conn.send((".."+filesListJson).encode(FORMAT))
 
+            elif msg == "_SAVE":
+                
+                with open(filePaths[name], "w") as output_file:
+                    output_file.write(theText[filePath])
+                pass
             else:
                 conn.send("Message Recieved".encode(FORMAT))
             print(f"[{addr}] {msg}")

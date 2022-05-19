@@ -13,7 +13,7 @@ HEADER = 64
 PORT = 5050
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
-SERVER = "172.20.10.3"
+SERVER = "192.168.1.104"
 ADDR = (SERVER, PORT)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -55,6 +55,7 @@ def update(recieved):
         flag = True
         txt_edit.delete(1.0, tk.END)
         txt_edit.config(state=tk.NORMAL)
+        btn_save.config(state=tk.NORMAL)
 
         text =recieved[1:]
         txt_edit.insert(tk.END, text)
@@ -120,29 +121,6 @@ def send(msg):
     client.send(message)
 
 
-def sendd(msg):
-    global textCopy, theText
-    message = msg.encode(FORMAT)
-    msgLength = len(message)
-    sendLength = str(msgLength).encode(FORMAT)
-    sendLength += b' ' * (HEADER - len(sendLength))
-    client.send(sendLength)
-    client.send(message)
-    print("Waiting for acK")
-    recieved = client.recv(2048).decode(FORMAT)
-    print("acKed")
-    
-    if recieved[0]=='$':
-        return recieved[1:]
-    # if  recieved== "Message Recieved":
-    #     print(recieved)
-    
-
-    # elif is_json(recieved):
-    #     diff = json.loads(recieved)
-    #     textCopy = applyDiff(textCopy,diff)
-    #     theText = applyDiff(theText,diff)
-
 def is_json(myjson):
     try:
         json.loads(myjson)
@@ -152,42 +130,28 @@ def is_json(myjson):
 
 def open_file():
     """Open a file for editing."""
-    global theText,textCopy,flag
-    # flag = True
-    # filepath = askopenfilename(
-    # filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
-    # )
-    # if not filepath:
-    #     return
-    # txt_edit.delete(1.0, tk.END)
-    # txt_edit.config(state=tk.NORMAL)
     
     send("send list of files")
     
-    # text = sendd(filepath)
     thread = threading.Thread(target=recievingUpdates, args= ())
     thread.start()
-    # text = input_file.read()
-    # txt_edit.insert(tk.END, text)
-    # theText = text
-    # textCopy = theText
-    # flag = False
+    
     
     
     
     
 def save_file():
     """Save the current file as a new file."""
-    filepath = asksaveasfilename(
-    defaultextension="txt",
-    filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
-    )
-    if not filepath:
-        return
-    with open(filepath, "w") as output_file:
-        text = txt_edit.get(1.0, tk.END)
-        output_file.write(text)
-    window.title(f"Thecleverprogrammer - {filepath}")
+    global flag
+
+    send("_SAVE")
+    flag = True
+    txt_edit.delete(1.0, tk.END)
+    txt_edit.config(state=tk.DISABLED)
+    btn_save.config(state=tk.DISABLED)
+    flag = False
+
+    
 
 class CustomText(tk.Text):
     def __init__(self, *args, **kwargs):
@@ -277,7 +241,8 @@ txt_edit.config(state=tk.DISABLED)
 
 fr_buttons = tk.Frame(window, relief=tk.RAISED, bd=2)
 btn_open = tk.Button(fr_buttons, text="Open", command=open_file)
-btn_save = tk.Button(fr_buttons, text="Save As...", command=save_file)
+btn_save = tk.Button(fr_buttons, text="Save", command=save_file)
+btn_save.config(state=tk.DISABLED)
 btn_open.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
 btn_save.grid(row=1, column=0, sticky="ew", padx=5)
 fr_buttons.grid(row=0, column=0, sticky="ns")
