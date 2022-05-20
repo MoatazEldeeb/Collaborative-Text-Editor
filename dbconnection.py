@@ -17,9 +17,3 @@ def getPathOfFile(file):
     print(fileId)
     return fileId[1]
 
-
-# def getTextOfFile(file):
-
-#     with open(file, "r") as input_file:
-#         txt = input_file.read()
-#     print(txt)
