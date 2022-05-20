@@ -17,7 +17,6 @@ def getPathOfFile(file):
     print(fileId)
     return fileId[1]
 
-print(getAllFileNames())
 
 # def getTextOfFile(file):
 

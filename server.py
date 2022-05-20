@@ -90,16 +90,18 @@ def handle_client(conn, addr):
                 d = json.loads(msg)
                 textCopy[filePath] = applyDiff(textCopy[filePath],d)
                 
-                theText[filePath] = applyDiff(theText[filePath],d)
+                
+                updates = dict(diff(theText[filePath],textCopy[filePath]))
 
-                updates = dict(diff(textCopy[filePath],theText[filePath]))
-              
+                delta = json.dumps(updates)
+                theText[filePath] = applyDiff(theText[filePath],d)
+                print("[DELTA] = ",delta)
 
                 for c in clients:
                     for f in filePaths.values():
                         
                         if f==filePath and not c.getpeername() == conn.getpeername():
-                            c.send(('$'+textCopy[filePath]).encode(FORMAT))
+                            c.send(delta.encode(FORMAT))
                 
                         
                             
