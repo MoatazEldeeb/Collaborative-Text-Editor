@@ -75,10 +75,11 @@ def handle_client(conn, addr):
                 # filePath = msg
                 print(f"[{addr}] Opened file: {filePath}")
                 if filePath in filePaths.values():
+                    filePaths[conn.getpeername()] = filePath
                     temp = '$'+str(theText[filePath])
                     conn.send(temp.encode(FORMAT))
                 else:
-                    filePaths[name] = filePath
+                    filePaths[conn.getpeername()] = filePath
                     with open(filePath, "r") as input_file:
                         theText[filePath] = input_file.read()
                         print("the text = ",theText[filePath])
@@ -92,18 +93,19 @@ def handle_client(conn, addr):
                 
                 
                 updates = dict(diff(theText[filePath],textCopy[filePath]))
-
                 delta = json.dumps(updates)
+
                 theText[filePath] = applyDiff(theText[filePath],d)
-                print("[DELTA] = ",delta)
+
 
                 for c in clients:
-                    for f in filePaths.values():
-                        
-                        if f==filePath and not c.getpeername() == conn.getpeername():
+                    fi = filePaths[c.getpeername()]
+                    print("fi ===" ,fi)
+                    for cli,f in filePaths.items():
+                        print("f === ",f)
+                        if (f==fi) and (cli != c.getpeername()) and (conn.getpeername() != c.getpeername()):
                             c.send(delta.encode(FORMAT))
-                
-                        
+                   
                             
                 textCopy[filePath] = theText[filePath]
             elif msg =="send list of files":

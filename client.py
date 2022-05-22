@@ -67,8 +67,11 @@ def update(recieved):
 
     elif is_json(recieved):
         flag =True
+        # i = txt_edit.index(tk.INSERT)
+        # i= i.split(".")
         txt_edit.delete(1.0, tk.END)
         diff = json.loads(recieved)
+        print("[diff] = ",diff)
 
         textCopy = applyDiff(textCopy,diff)
         theText = applyDiff(theText,diff)
@@ -76,6 +79,7 @@ def update(recieved):
         textCopy = theText
         
         txt_edit.insert(tk.END, theText)
+        # txt_edit.mark_set("insert", "%d.%d" % (int(i[0]),int(i[1])))
         flag =False
         
         print("the text: ",theText)
