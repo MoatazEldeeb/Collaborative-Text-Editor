@@ -24,18 +24,26 @@ textCopy = theText
 flag = False
 
 def applyDiff(text , changes):
+    enters=0
+    letters=0
     print("Applying Diff => ", changes)
     x = list(changes.keys())
     y= list(changes.values())[0]
     if "delete" in x:
+        enters = (y.count('\n'))
+        letters= len(y) - enters
         dele =  y[0][1]+ len(y) -1
         text = text[:y[0][1]] + text[dele+1:]
+        enters = -1* enters
         print(text)
     if "insert" in x:
+
+        enters = (y.count('\n'))
+        letters= len(y) - enters
         for i in y:
             text= text[:i[1]] + i[0] + text[i[1]:]
    
-    return text
+    return text,enters,letters
 
 def fileSelected(file, fileNames):
     
@@ -67,19 +75,24 @@ def update(recieved):
 
     elif is_json(recieved):
         flag =True
-        # i = txt_edit.index(tk.INSERT)
-        # i= i.split(".")
+        i = txt_edit.index(tk.INSERT)
+        i= i.split(".")
         txt_edit.delete(1.0, tk.END)
         diff = json.loads(recieved)
         print("[diff] = ",diff)
 
-        textCopy = applyDiff(textCopy,diff)
-        theText = applyDiff(theText,diff)
+        textCopy,enters,letters = applyDiff(textCopy,diff)
+        theText,enters,letters = applyDiff(theText,diff)
+
+        lastIndex = (list(diff.values())[0])[-1][1]
+
 
         textCopy = theText
-        
         txt_edit.insert(tk.END, theText)
-        # txt_edit.mark_set("insert", "%d.%d" % (int(i[0]),int(i[1])))
+        if lastIndex <= int(i[0])+int(i[1]):
+            txt_edit.mark_set("insert", "%d.%d" % (int(i[0])+enters,int(i[1])+letters))
+        else :
+            txt_edit.mark_set("insert", "%d.%d" % (int(i[0]),int(i[1])))
         flag =False
         
         print("the text: ",theText)
