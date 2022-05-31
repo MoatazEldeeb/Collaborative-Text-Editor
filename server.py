@@ -48,7 +48,14 @@ def diff(original, copy):
         elif s[0]=='+':
             updates['insert'].append((s[-1],i))  
     return updates
-    
+
+def send(msg, c):
+    message = msg.encode(FORMAT)
+    msgLength = len(message)
+    sendLength = str(msgLength).encode(FORMAT)
+    sendLength += b' ' * (HEADER - len(sendLength))
+    c.send(sendLength)
+    c.send(message)
 
 def handle_client(conn, addr):
     global theText,textCopy,filePaths,clients
@@ -65,7 +72,8 @@ def handle_client(conn, addr):
             if msg == DISCONNECT_MSG:
                 connected = False
                 print(f"[{addr}] Disconnected")
-                conn.send("Message Recieved".encode(FORMAT))
+                send("Message Recieved",conn)
+                # conn.send("Message Recieved".encode(FORMAT))
 
             elif msg[:2] == "//":
                 
@@ -77,7 +85,8 @@ def handle_client(conn, addr):
                 if filePath in filePaths.values():
                     filePaths[conn.getpeername()] = filePath
                     temp = '$'+str(theText[filePath])
-                    conn.send(temp.encode(FORMAT))
+                    send(temp,conn)
+                    # conn.send(temp.encode(FORMAT))
                 else:
                     filePaths[conn.getpeername()] = filePath
                     with open(filePath, "r") as input_file:
@@ -85,7 +94,8 @@ def handle_client(conn, addr):
                         print("the text = ",theText[filePath])
                         textCopy[filePath] = theText[filePath]
                         temp = '$'+str(theText[filePath])
-                        conn.send(temp.encode(FORMAT))
+                        send(temp,conn)
+                        # conn.send(temp.encode(FORMAT))
                         
             elif is_json(msg): 
                 d = json.loads(msg)
@@ -104,7 +114,8 @@ def handle_client(conn, addr):
                     for cli,f in filePaths.items():
                         print("f === ",f)
                         if (f==fi) and (cli != c.getpeername()) and (conn.getpeername() != c.getpeername()):
-                            c.send(delta.encode(FORMAT))
+                            send(delta, c)
+                            # c.send(delta.encode(FORMAT))
                    
                             
                 textCopy[filePath] = theText[filePath]
@@ -112,7 +123,8 @@ def handle_client(conn, addr):
                 filesList= dbconnection.getAllFileNames()
                 print(filesList)
                 filesListJson=json.dumps(filesList)
-                conn.send((".."+filesListJson).encode(FORMAT))
+                send((".."+filesListJson),conn)
+                # conn.send((".."+filesListJson).encode(FORMAT))
 
             elif msg == "_SAVE":
                 
@@ -120,7 +132,8 @@ def handle_client(conn, addr):
                     output_file.write(theText[filePath])
                 pass
             else:
-                conn.send("Message Recieved".encode(FORMAT))
+                send("Message Recieved",conn)
+                # conn.send("Message Recieved".encode(FORMAT))
             print(f"[{addr}] {msg}")
 
         

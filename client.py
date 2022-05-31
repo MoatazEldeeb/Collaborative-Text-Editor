@@ -1,11 +1,9 @@
 from collections import defaultdict
 from distutils import text_file
 import socket
-import sys
 import threading
 import tkinter as tk
 from tkinter import ttk
-from tkinter.filedialog import askopenfilename, asksaveasfilename
 import difflib
 import json
 
@@ -13,7 +11,7 @@ HEADER = 64
 PORT = 5050
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
-SERVER = "192.168.1.104"
+SERVER = "192.168.1.114"
 ADDR = (SERVER, PORT)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -233,9 +231,11 @@ def recievingUpdates():
     global connected
     
     while connected:
-        msg = client.recv(2048).decode(FORMAT)
-        print(msg)
-        update(msg)
+        msgLength = int(client.recv(HEADER).decode(FORMAT))
+        if msgLength:
+            msg = client.recv(msgLength).decode(FORMAT)
+            print(msg)
+            update(msg)
 
 
 
