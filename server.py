@@ -24,6 +24,7 @@ textCopy = {}
 filePaths ={}
 clients =[]
 
+#Function to apply differnences to text 
 def applyDiff(text , changes):
     print("Applying Diff => ", changes)
     x = list(changes.keys())
@@ -38,6 +39,7 @@ def applyDiff(text , changes):
    
     return text
 
+#Function to get the diffrence from original text to modified text
 def diff(original, copy):  
     updates =defaultdict(list)
     print('{} => {}'.format(original,copy)) 
@@ -49,6 +51,7 @@ def diff(original, copy):
             updates['insert'].append((s[-1],i))  
     return updates
 
+#Send function protocol
 def send(msg, c):
     message = msg.encode(FORMAT)
     msgLength = len(message)
@@ -57,6 +60,7 @@ def send(msg, c):
     c.send(sendLength)
     c.send(message)
 
+# Threaded funtion (one for every client connection) to handle syncronization
 def handle_client(conn, addr):
     global theText,textCopy,filePaths,clients
     print(f"[NEW CONNECTION] {addr} connected.")
@@ -107,7 +111,7 @@ def handle_client(conn, addr):
 
                 theText[filePath] = applyDiff(theText[filePath],d)
 
-
+                
                 for c in clients:
                     fi = filePaths[c.getpeername()]
                     print("fi ===" ,fi)
@@ -140,6 +144,7 @@ def handle_client(conn, addr):
             
     conn.close()
 
+#function to check if string is json
 def is_json(myjson):
     try:
         json.loads(myjson)
@@ -147,6 +152,7 @@ def is_json(myjson):
         return False
     return True
 
+#main function to start server
 def start():
     global clients
     server.listen()

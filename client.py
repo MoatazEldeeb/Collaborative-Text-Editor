@@ -1,5 +1,4 @@
 from collections import defaultdict
-from distutils import text_file
 import socket
 import threading
 import tkinter as tk
@@ -11,7 +10,7 @@ HEADER = 64
 PORT = 5050
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
-SERVER = "192.168.1.114"
+SERVER = "192.168.1.3"
 ADDR = (SERVER, PORT)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -21,6 +20,7 @@ theText = ""
 textCopy = theText
 flag = False
 
+#Function to apply differnences to text 
 def applyDiff(text , changes):
     enters=0
     letters=0
@@ -43,6 +43,7 @@ def applyDiff(text , changes):
    
     return text,enters,letters
 
+#Function to send the selected file name to server
 def fileSelected(file, fileNames):
     
     for f in fileNames:
@@ -51,6 +52,7 @@ def fileSelected(file, fileNames):
             send("//"+str(f[0]))
             return
     
+# Function to update the state from the recieved message
 def update(recieved):
     global textCopy, theText,flag
     if  recieved== "Message Recieved":
@@ -126,7 +128,7 @@ def update(recieved):
 
 
 
-
+#Protocol to send message
 def send(msg):
     message = msg.encode(FORMAT)
     msgLength = len(message)
@@ -135,7 +137,7 @@ def send(msg):
     client.send(sendLength)
     client.send(message)
 
-
+#Function to check if string is json
 def is_json(myjson):
     try:
         json.loads(myjson)
@@ -143,6 +145,7 @@ def is_json(myjson):
         return False
     return True
 
+#function to be called when open file button is clicked
 def open_file():
     """Open a file for editing."""
     
@@ -151,10 +154,8 @@ def open_file():
     thread = threading.Thread(target=recievingUpdates, args= ())
     thread.start()
     
-    
-    
-    
-    
+#Function to be called when save file button is clicked.
+#Saved text file will be saved in server side database
 def save_file():
     """Save the current file as a new file."""
     global flag
@@ -167,7 +168,7 @@ def save_file():
     flag = False
 
     
-
+#Class to handle Text area
 class CustomText(tk.Text):
     def __init__(self, *args, **kwargs):
         """A text widget that report on internal widget commands"""
@@ -197,6 +198,7 @@ class CustomText(tk.Text):
 
         return result
 
+#Function to get the diffrence from original text to modified text
 def diff(original, copy):  
     updates =defaultdict(list)
     print('{} => {}'.format(original,copy)) 
@@ -208,6 +210,7 @@ def diff(original, copy):
             updates['insert'].append((s[-1],i))  
     return updates
 
+#Function to be invoked when text area changed
 def onModification(event):
     global theText, textCopy, flag
     if flag ==False:
@@ -226,7 +229,7 @@ def onModification(event):
     # print(txt_edit.index(tk.INSERT))
     # print(txt_edit.comm)
         
-
+#Function to  recieve from server while connected
 def recievingUpdates():
     global connected
     
@@ -237,8 +240,7 @@ def recievingUpdates():
             print(msg)
             update(msg)
 
-
-
+#Function called when closing
 def on_closing():
     global connected
     send(DISCONNECT_MSG)
