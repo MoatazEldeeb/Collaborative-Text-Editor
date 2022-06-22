@@ -150,12 +150,14 @@ def open_file():
     """Open a file for editing."""
     
     send("send list of files")
+    print("List of threads=>> ",len(threading.enumerate()))
     
-    thread = threading.Thread(target=recievingUpdates, args= ())
-    thread.start()
+    if len(threading.enumerate()) ==1:
+        thread = threading.Thread(name="o",target=recievingUpdates, args= ())
+        thread.start()
     
 #Function to be called when save file button is clicked.
-#Saved text file will be saved in server side database
+#Saved text file will be saved in server side database.
 def save_file():
     """Save the current file as a new file."""
     global flag
