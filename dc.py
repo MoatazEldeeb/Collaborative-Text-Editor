@@ -97,3 +97,6 @@ print("Hello")
 while True:
     print(f"Server is: {CS3.getLife()}\n")
     time.sleep(5)
+
+
+# bg="#242424", fg="#FFFFFF", insertbackground="#CCCCCC"
