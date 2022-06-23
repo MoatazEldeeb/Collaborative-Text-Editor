@@ -2,6 +2,17 @@ import time
 import socket
 import threading
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 class CS:
     def __init__(self, addr, av):
         self.addr = addr
@@ -14,9 +25,9 @@ class CS:
         else:
             return ("offline")
 
-ADDRCS1 = ('192.168.1.102', 5060)     #VM     1
-ADDRCS2 = ('192.168.1.102', 5070)      #VM     2
-ADDRCS3 = ('192.168.1.102', 5080)     #Local  1
+ADDRCS1 = ('192.168.1.102', 5060)     #SERVER 1
+ADDRCS2 = ('192.168.1.102', 5070)     #SERVER 2
+ADDRCS3 = ('192.168.1.102', 5080)     #SERVER 3
 CS1 = CS(ADDRCS1, False)
 CS2 = CS(ADDRCS2, False)
 CS3 = CS(ADDRCS3, False)
@@ -29,7 +40,8 @@ ADDR = (SERVER, PORT)
 
 
 #This should be called every 60 seconds to update the availability of its set server.
-def ourThread(server):
+def ourThread(server, clr):
+    endc = bcolors.ENDC
     myAddr = server.addr
     myAv = server.av
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -42,30 +54,30 @@ def ourThread(server):
             while True:
                 counter += 1
                 try:
-                    print(f"[CONNECTING TO {addr}]")
+                    print(f"{clr}[CONNECTING TO {addr}]{endc}")
                     client.connect(addr)
 
                 except Exception as e:
                     if(counter < 10):
-                        print(f"[TRIES = {counter}] Connection failed, trying again...\n")
+                        print(f"{clr}[TRIES = {counter}] Connection failed, trying again...\n{endc}")
                     else:
                         
-                        print(f"[TRIES = {counter}] Connection failed, max tries occured, Trying again in 1 minute...\n")
+                        print(f"{clr}[TRIES = {counter}] Connection failed, max tries occured, Trying again in 1 minute...\n{endc}")
                         cn = False
                         
                         return cn
                 else:
-                    print("Connection succesful!")
+                    print(f"{clr}Connection succesful!{endc}")
                     cn = True
                     return cn
         else:
             client.send(b'Ping')
-            print("Ping")
+            print(f"{clr}Ping{endc}")
             client.settimeout(3.0)
             try:
                 message = client.recv(1024)
             except:
-                print(f"Server [{addr}] crashed")
+                print(f"{clr}Server [{addr}] crashed{endc}")
 
                 return False
             else:
@@ -89,18 +101,18 @@ def ourThread(server):
 
 
 
-t1 = threading.Thread(target=ourThread, args=(CS1,))
-t2 = threading.Thread(target=ourThread, args=(CS2,))
-t3 = threading.Thread(target=ourThread, args=(CS3,))
+t1 = threading.Thread(target=ourThread, args=(CS1,bcolors.OKBLUE,))
+t2 = threading.Thread(target=ourThread, args=(CS2,bcolors.OKCYAN))
+t3 = threading.Thread(target=ourThread, args=(CS3,bcolors.OKGREEN))
 
 t1.start()
 t2.start()
 t3.start()
 
 while True:
-    print(f"Server[{CS1.addr}] is: {CS1.getLife()}\n")
-    print(f"Server[{CS2.addr}] is: {CS2.getLife()}\n")
-    print(f"Server[{CS3.addr}] is: {CS3.getLife()}\n")
+    print(f"{bcolors.OKBLUE}Server[{CS1.addr}] is: {CS1.getLife()}{bcolors.ENDC}\n")
+    print(f"{bcolors.OKCYAN}Server[{CS2.addr}] is: {CS2.getLife()}{bcolors.ENDC}\n")
+    print(f"{bcolors.OKGREEN}Server[{CS3.addr}] is: {CS3.getLife()}{bcolors.ENDC}\n")
     
     time.sleep(5)
 
