@@ -110,11 +110,21 @@ t2.start()
 t3.start()
 
 while True:
-    print(f"{bcolors.OKBLUE}Server[{CS1.addr}] is: {CS1.getLife()}{bcolors.ENDC}\n")
-    print(f"{bcolors.OKCYAN}Server[{CS2.addr}] is: {CS2.getLife()}{bcolors.ENDC}\n")
-    print(f"{bcolors.OKGREEN}Server[{CS3.addr}] is: {CS3.getLife()}{bcolors.ENDC}\n")
-    
     time.sleep(5)
+    clr1 = bcolors.OKBLUE if CS1.av else bcolors.WARNING
+    clr2 = bcolors.OKCYAN if CS2.av else bcolors.WARNING
+    clr3 = bcolors.OKGREEN if CS3.av else bcolors.WARNING
+    
+    print(f"{bcolors.OKBLUE}Server[{CS1.addr}] is:{bcolors.ENDC}{clr1} {CS1.getLife()}{bcolors.ENDC}\n")
+    print(f"{bcolors.OKCYAN}Server[{CS2.addr}] is:{bcolors.ENDC}{clr2} {CS2.getLife()}{bcolors.ENDC}\n")
+    print(f"{bcolors.OKGREEN}Server[{CS3.addr}] is:{bcolors.ENDC}{clr3} {CS3.getLife()}{bcolors.ENDC}\n")
+    
 
 
 # bg="#242424", fg="#FFFFFF", insertbackground="#CCCCCC"
+
+# print(addr[0].split(".")[0] + "\n" + addr[0].split(".")[1])
+# above code will print out the first two parts of the connecting client
+# we use that to determine if the connecting client is local or not
+# if local we return the normal address of the server (locally)
+# if not then we return the hardcoded external ip address of the router, and the port of the server
