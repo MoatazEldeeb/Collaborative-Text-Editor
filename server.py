@@ -11,7 +11,7 @@ import dbconnection
 
 HEADER = 64
 PORT = 5050
-SERVER = socket.gethostbyname(socket.gethostname())
+SERVER = "192.168.1.101"
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
@@ -62,9 +62,11 @@ def send(msg, c):
 
 # Threaded funtion (one for every client connection) to handle syncronization
 def handle_client(conn, addr):
-    global theText,textCopy,filePaths,clients
+    # global theText,textCopy,filePaths,clients code works without this
     print(f"[NEW CONNECTION] {addr} connected.")
     name = conn.getpeername()
+    print("\n\n\n")
+    print(name)
     connected = True
     while connected:
         msgLength = conn.recv(HEADER).decode(FORMAT)

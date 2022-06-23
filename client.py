@@ -10,11 +10,28 @@ HEADER = 64
 PORT = 5050
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
-SERVER = "192.168.1.3"
+SERVER = "192.168.1.101"
 ADDR = (SERVER, PORT)
+REQUEST_C_MSG = '!requestconnect'
+
+#Protocol to send message
+def send(msg):
+    message = msg.encode(FORMAT)
+    msgLength = len(message)
+    sendLength = str(msgLength).encode(FORMAT)
+    sendLength += b' ' * (HEADER - len(sendLength))
+    client.send(sendLength) 
+    client.send(message)    #encapsulate this with a try except else, try(send), except(reconnect), else(pass)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(ADDR)
+send("") # code for SS to send back the addr and port of CS (super server, child server)
+
+
+# make this connect to a super server that returns an address and a portnum (that are stored in that server)
+# which then the client will take and initiate a connection with that server, which will provide it with a socket for future communication
+
+
 
 theText = ""
 textCopy = theText
@@ -128,14 +145,7 @@ def update(recieved):
 
 
 
-#Protocol to send message
-def send(msg):
-    message = msg.encode(FORMAT)
-    msgLength = len(message)
-    sendLength = str(msgLength).encode(FORMAT)
-    sendLength += b' ' * (HEADER - len(sendLength))
-    client.send(sendLength)
-    client.send(message)
+
 
 #Function to check if string is json
 def is_json(myjson):
@@ -249,6 +259,7 @@ def on_closing():
     connected =False
     window.destroy()
     
+
 
 window = tk.Tk()
 window.title("Thecleverprogrammer")
