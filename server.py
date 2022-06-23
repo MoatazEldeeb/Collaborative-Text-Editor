@@ -10,8 +10,10 @@ import json
 import dbconnection
 
 HEADER = 64
-PORT = 5050
-SERVER = "192.168.1.101"
+PORT = 5060
+PPORT   = 6060
+SERVER = "192.168.1.102"
+PADDR   = (SERVER, PPORT)
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
@@ -23,6 +25,21 @@ theText = {}
 textCopy = {}
 filePaths ={}
 clients =[]
+
+def pong():
+    pserver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    pserver.bind(PADDR)
+
+    pserver.listen()
+
+    conn, addr = pserver.accept()
+    print("Server connected to super server")
+    while True:
+        message = conn.recv(1024)
+        print(message.decode())
+        conn.send(b'Pong!')
+
 
 #Function to apply differnences to text 
 def applyDiff(text , changes):
@@ -54,26 +71,28 @@ def diff(original, copy):
 #Send function protocol
 def send(msg, c):
     message = msg.encode(FORMAT)
-    msgLength = len(message)
-    sendLength = str(msgLength).encode(FORMAT)
-    sendLength += b' ' * (HEADER - len(sendLength))
-    c.send(sendLength)
+    # msgLength = len(message)
+    # sendLength = str(msgLength).encode(FORMAT)
+    # sendLength += b' ' * (HEADER - len(sendLength))
+    # c.send(sendLength)
     c.send(message)
 
 # Threaded funtion (one for every client connection) to handle syncronization
 def handle_client(conn, addr):
-    # global theText,textCopy,filePaths,clients code works without this
+    global theText,textCopy,filePaths,clients
     print(f"[NEW CONNECTION] {addr} connected.")
     name = conn.getpeername()
     print("\n\n\n")
     print(name)
     connected = True
     while connected:
-        msgLength = conn.recv(HEADER).decode(FORMAT)
+        # msgLength = conn.recv(HEADER).decode(FORMAT)
+        msg = conn.recv(1024).decode(FORMAT)
         
-        if msgLength:
-            msgLength = int(msgLength)
-            msg = conn.recv(msgLength).decode(FORMAT)
+        # if msgLength:
+        if msg:
+            # msgLength = int(msgLength)
+            # msg = conn.recv(msgLength).decode(FORMAT)
 
             if msg == DISCONNECT_MSG:
                 connected = False
@@ -102,7 +121,10 @@ def handle_client(conn, addr):
                         temp = '$'+str(theText[filePath])
                         send(temp,conn)
                         # conn.send(temp.encode(FORMAT))
-                        
+            elif (msg=="Ping"):
+                print(msg)
+                send('Pong!', conn)
+            
             elif is_json(msg): 
                 d = json.loads(msg)
                 textCopy[filePath] = applyDiff(textCopy[filePath],d)
@@ -142,9 +164,10 @@ def handle_client(conn, addr):
                 # conn.send("Message Recieved".encode(FORMAT))
             print(f"[{addr}] {msg}")
 
-        
-            
+    clients.remove(conn)    # remove client from list of clients!
+    conn.shutdown(socket.SHUT_RDWR)
     conn.close()
+
 
 #function to check if string is json
 def is_json(myjson):
@@ -159,10 +182,11 @@ def start():
     global clients
     server.listen()
     print(f"[LISTENING] Server is listening on {SERVER}")
-    
+    myPong = threading.Thread(target=pong)
+    myPong.start()
     while True:
         
-        conn , addr = server.accept()
+        conn, addr = server.accept()
         clients.append(conn)
         thread = threading.Thread(target=handle_client, args= (conn,addr))
         thread.start()

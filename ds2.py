@@ -1,6 +1,8 @@
 import socket
 import threading
 
+threads = []
+
 PPORT   = 6070
 PORT    = 5070
 SERVER  = "192.168.1.102"
@@ -15,12 +17,19 @@ def pong():
     pserver.listen()
 
     conn, addr = pserver.accept()
+    print("Server connected to super server")
+    while True:
+        message = conn.recv(1024)
+        print(message.decode())
+        conn.send(b'Pong!')
+        
+def client_handler(conn, addr):
     print("Server connected to a client")
     while True:
         print("Receiving...")
         message = conn.recv(1024)
         print(message.decode())
-        conn.send(b'Pong!')
+        conn.send(b'Pong from client!')
         
 myPong = threading.Thread(target=pong)
 
@@ -32,11 +41,9 @@ server.bind(ADDR)
 
 server.listen()
 
-conn, addr = server.accept()
-print("Server connected to a client")
 while True:
-    print("Receiving...")
-    message = conn.recv(1024)
-    print(message.decode())
-    conn.send(b'Pong!')
-    
+    conn, addr = server.accept()
+    myT = threading.Thread(target=client_handler, args=(conn,addr,))
+    myT.start()
+    threads.append(myT)
+

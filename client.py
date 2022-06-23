@@ -1,35 +1,126 @@
 from collections import defaultdict
+import re
 import socket
 import threading
 import tkinter as tk
 from tkinter import ttk
 import difflib
 import json
+import time
 
 HEADER = 64
 PORT = 5050
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
-SERVER = "192.168.1.101"
+SERVER = "192.168.1.102"
 ADDR = (SERVER, PORT)
 REQUEST_C_MSG = '!requestconnect'
+connected = False
+####################################################### FETCHING CHILD SERVER #######################################################
+def initConnSup():
+    global  client, connected
+    ssclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    connected = False
+    counter = 0
+    thread = threading.Thread(name="o",target=recievingUpdates, args= ())
+    while True:
+        if not connected:    
+            
+            try:
+                ssclient.connect(ADDR)
+                message = ssclient.recv(1024)
+            except Exception as e:
+                print(e)
+                print("Failed to connect to super server.")
+                time.sleep(5)
+            else:
+                print("Connected to super server, retrieving child server.")
+                message = message.decode()
+                if(message == "FAILED"):
+                    ssclient.shutdown(socket.SHUT_RDWR)
+                    ssclient.close()
+                    ssclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    time.sleep(5)
+                    print(message + "\nTrying again...")
+
+                else:
+                    message = message.split(":")
+                    myAddr = message[0]
+                    myPort = int(message[1])
+                    saddr = (myAddr, myPort)
+                    try:
+                        client.connect(saddr)
+                        # client.send(b'Hello am I connected?')
+                        # messageFromChild = client.recv(1024)
+                    except:
+                        try:
+                            ssclient.shutdown(socket.SHUT_RDWR)
+                            ssclient.close()
+                            ssclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        except:
+                            pass
+                        else:
+                            pass
+                        print("Failed to connect to child server.")
+                        time.sleep(5)
+                    else:
+                        connected = True
+                        print("Connected!")
+                        counter = 0
+                        if connected:
+                            
+                            thread.start()
+                        # print(messageFromChild.decode())
+                        
+        else:
+            try:
+                send("Ping")
+            except:
+                try:
+                    client.shutdown(socket.SHUT_RDWR)
+                    client.close()
+                    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                except:
+                    pass
+            else:
+                time.sleep(3)
+        #     if(counter == 5):
+        #         client.shutdown(socket.SHUT_RDWR)
+        #         client.close()
+        #         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #         connected = False
+        #     else:
+        #         try:
+        #             # client.send(b'Ping')
+        #             send("Ping")
+        #             # print(f"{clr}Ping{endc}")
+                    
+        #             # message = client.recv(1024)
+        #             time.sleep(3)
+        #         except:
+        #             # print(f"{clr}Server [{addr}] crashed{endc}")
+        #             counter += 1
+                    
+        #         else:
+        #             # print(message.decode())
+        #             counter = 0
+        #             connected = True
+
+####################################################### FETCHING CHILD SERVER #######################################################
+
 
 #Protocol to send message
 def send(msg):
-    message = msg.encode(FORMAT)
-    msgLength = len(message)
-    sendLength = str(msgLength).encode(FORMAT)
-    sendLength += b' ' * (HEADER - len(sendLength))
-    client.send(sendLength) 
-    client.send(message)    #encapsulate this with a try except else, try(send), except(reconnect), else(pass)
+    if connected:
+        message = msg.encode(FORMAT)
+        # msgLength = len(message)
+        # sendLength = str(msgLength).encode(FORMAT)
+        # sendLength += b' ' * (HEADER - len(sendLength))
+        # client.send(sendLength) 
+        client.send(message)    #encapsulate this with a try except else, try(send), except(reconnect), else(pass)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(ADDR)
-send("") # code for SS to send back the addr and port of CS (super server, child server)
-
-
-# make this connect to a super server that returns an address and a portnum (that are stored in that server)
-# which then the client will take and initiate a connection with that server, which will provide it with a socket for future communication
+# client.connect(ADDR)
 
 
 
@@ -72,8 +163,8 @@ def fileSelected(file, fileNames):
 # Function to update the state from the recieved message
 def update(recieved):
     global textCopy, theText,flag
-    if  recieved== "Message Recieved":
-        print(recieved)
+    if  (recieved== "Message Recieved") | (recieved == "Pong!"):
+        print("got: " + recieved)
     
     elif recieved[0]=='$':
         #Recieve File Text
@@ -89,7 +180,6 @@ def update(recieved):
         
 
         flag = False
-
     elif is_json(recieved):
         flag =True
         i = txt_edit.index(tk.INSERT)
@@ -162,9 +252,9 @@ def open_file():
     send("send list of files")
     print("List of threads=>> ",len(threading.enumerate()))
     
-    if len(threading.enumerate()) ==1:
-        thread = threading.Thread(name="o",target=recievingUpdates, args= ())
-        thread.start()
+    # if connected:
+    #     thread = threading.Thread(name="o",target=recievingUpdates, args= ())
+    #     thread.start()
     
 #Function to be called when save file button is clicked.
 #Saved text file will be saved in server side database.
@@ -243,13 +333,23 @@ def onModification(event):
         
 #Function to  recieve from server while connected
 def recievingUpdates():
-    global connected
-    
+    global connected, client
+    client.settimeout(5.0)
     while connected:
-        msgLength = int(client.recv(HEADER).decode(FORMAT))
-        if msgLength:
-            msg = client.recv(msgLength).decode(FORMAT)
-            print(msg)
+        # msgLength = int(client.recv(HEADER).decode(FORMAT))
+        # print(msgLength)
+        try:
+            msg = client.recv(1024).decode(FORMAT)
+        except:
+            try:
+                client.shutdown(socket.SHUT_RDWR)
+                client.close()
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            except:
+                pass
+            connected = False
+        else:
+            print("got this inside recv updates: " + msg)
             update(msg)
 
 #Function called when closing
@@ -260,6 +360,8 @@ def on_closing():
     window.destroy()
     
 
+connThread = threading.Thread(target=initConnSup) # thread that handles connection and modifies global variable connected
+connThread.start()
 
 window = tk.Tk()
 window.title("Thecleverprogrammer")
@@ -281,7 +383,6 @@ fr_buttons.grid(row=0, column=0, sticky="ns")
 
 txt_edit.grid(row=0, column=1, sticky="nsew")
 
-connected =True
 
 
 window.mainloop()
