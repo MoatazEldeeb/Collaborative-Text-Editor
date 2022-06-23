@@ -14,8 +14,8 @@ class CS:
         else:
             return ("offline")
 
-ADDRCS1 = ('192.168.111.1', 5060)     #VM     1
-ADDRCS2 = ('192.168.24.1', 5070)      #VM     2
+ADDRCS1 = ('192.168.1.102', 5060)     #VM     1
+ADDRCS2 = ('192.168.1.102', 5070)      #VM     2
 ADDRCS3 = ('192.168.1.102', 5080)     #Local  1
 CS1 = CS(ADDRCS1, False)
 CS2 = CS(ADDRCS2, False)
@@ -89,13 +89,19 @@ def ourThread(server):
 
 
 
-t1 = threading.Thread(target=ourThread, args=(CS3,))
-# t2 = threading.Thread(target=ourThread, args=(CS3,))
+t1 = threading.Thread(target=ourThread, args=(CS1,))
+t2 = threading.Thread(target=ourThread, args=(CS2,))
+t3 = threading.Thread(target=ourThread, args=(CS3,))
+
 t1.start()
-# t2.start()
-print("Hello")
+t2.start()
+t3.start()
+
 while True:
-    print(f"Server is: {CS3.getLife()}\n")
+    print(f"Server[{CS1.addr}] is: {CS1.getLife()}\n")
+    print(f"Server[{CS2.addr}] is: {CS2.getLife()}\n")
+    print(f"Server[{CS3.addr}] is: {CS3.getLife()}\n")
+    
     time.sleep(5)
 
 
