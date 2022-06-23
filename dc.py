@@ -135,7 +135,7 @@ def server_status():
         clr1 = bcolors.OKGREEN if CS1.av else bcolors.FAIL
         clr2 = bcolors.OKGREEN if CS2.av else bcolors.FAIL
         clr3 = bcolors.OKGREEN if CS3.av else bcolors.FAIL
-        _ = os.system('cls')
+        # _ = os.system('cls')
         print(f"{bcolors.OKBLUE}Server[{CS1.addr}] is:{bcolors.ENDC}{clr1} {CS1.getLife()}{bcolors.ENDC}\n")
         print(f"{bcolors.OKCYAN}Server[{CS2.addr}] is:{bcolors.ENDC}{clr2} {CS2.getLife()}{bcolors.ENDC}\n")
         print(f"{bcolors.HEADER}Server[{CS3.addr}] is:{bcolors.ENDC}{clr3} {CS3.getLife()}{bcolors.ENDC}\n")
@@ -169,12 +169,13 @@ while True:
         # check the pipeline to see which server's turn is up
         # remove server from the front of the queue and insert it at the back
         for i in range(3):
-            
+            print("client is local...")
             turnOf = pipeline.get()
             pipeline.put(turnOf)
             currServer = SERVERS[turnOf]
             if(currServer.av ): # check the server's availability
                 if(quickCheck(currServer)):
+                    print(f"Sending server[{currServer}] to client[{clientAddr}]...")
                     clientSocket.send(currServer.getAddrInBytes()) # if available give server local ip and port
                     clientHandled = True
 
