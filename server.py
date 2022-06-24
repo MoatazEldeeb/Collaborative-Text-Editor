@@ -102,6 +102,14 @@ def handle_client(conn, addr):
 
             elif msg[:2] == "//":
                 
+                # modify this function to work like this:
+                # take the fileId, send it to the super server.
+                # ask super server if there's currently opened unsaved text for fileID
+                # if yes (This automatically covers for if text is here, because it automatically gets sent to ss)
+                    # copy text from super server, and give it to client, save it here (cache)
+                # if no
+                    # read text from saved file locally, and send it to super server
+
                 fileId = int(msg[2:])
                 print("FILE ID",fileId)
                 filePath=dbconnection.getPathOfFile(fileId)
@@ -134,6 +142,7 @@ def handle_client(conn, addr):
                 delta = json.dumps(updates)
 
                 theText[filePath] = applyDiff(theText[filePath],d)
+                # send the text with fileId to super server so super server can update other servers
 
                 
                 for c in clients:

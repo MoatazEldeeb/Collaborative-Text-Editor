@@ -7,6 +7,9 @@ from tkinter import ttk
 import difflib
 import json
 import time
+from tkinter.font import BOLD
+
+closTime = False
 
 HEADER = 64
 PORT = 5050
@@ -18,12 +21,14 @@ REQUEST_C_MSG = '!requestconnect'
 connected = False
 ####################################################### FETCHING CHILD SERVER #######################################################
 def initConnSup():
-    global  client, connected
+    global  client, connected, closTime
     ssclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     connected = False
     counter = 0
     thread = threading.Thread(name="o",target=recievingUpdates, args= ())
     while True:
+        if closTime:
+            break
         if not connected:    
             
             try:
@@ -250,6 +255,7 @@ def open_file():
     """Open a file for editing."""
     
     send("send list of files")
+    txt_edit.config(state=tk.NORMAL)
     print("List of threads=>> ",len(threading.enumerate()))
     
     # if connected:
@@ -354,35 +360,57 @@ def recievingUpdates():
 
 #Function called when closing
 def on_closing():
-    global connected
+    global connected, closTime
     send(DISCONNECT_MSG)
     connected =False
+    closTime = True
     window.destroy()
     
 
 connThread = threading.Thread(target=initConnSup) # thread that handles connection and modifies global variable connected
 connThread.start()
 
+def on_enter(e):
+    e.widget['background'] = "#075ea1"
+
+def on_leave(e):
+    e.widget['background'] = 'SystemButtonFace'
+
 window = tk.Tk()
-window.title("Thecleverprogrammer")
-window.rowconfigure(0, minsize=300, weight=1)
-window.columnconfigure(1, minsize=300, weight=1)
+window.title("Team 28 - Client")
+window.rowconfigure(0, minsize=600, weight=1)
+window.columnconfigure(1, minsize=200, weight=1)
 window.protocol("WM_DELETE_WINDOW", on_closing)
+window.geometry("800x600")
+window.minsize(800, 600)
+window.resizable(True, True)
 
-txt_edit = CustomText(window)
+txt_edit = CustomText(window, bg="#242424", fg="#FFFFFF", insertbackground="#DDDDDD", wrap= tk.WORD, font=("Consolas", 13), state=tk.DISABLED)
 txt_edit.bind("<<TextModified>>", onModification)
-txt_edit.config(state=tk.DISABLED)
+scrollb = tk.Scrollbar(window, orient=tk.VERTICAL)
+txt_edit.config(yscrollcommand=scrollb.set)
+scrollb.config(command=txt_edit.yview)
 
-fr_buttons = tk.Frame(window, relief=tk.RAISED, bd=2)
-btn_open = tk.Button(fr_buttons, text="Open", command=open_file)
-btn_save = tk.Button(fr_buttons, text="Save", command=save_file)
-btn_save.config(state=tk.DISABLED)
-btn_open.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
-btn_save.grid(row=1, column=0, sticky="ew", padx=5)
+fr_buttons = tk.Frame(window, relief=tk.RAISED, bd=10, bg="#000000")
+lab_team = tk.Label (fr_buttons, text="Team 28", fg="#075ea1", bg="#000000", font=("Times New Roman", 25, tk.UNDERLINE))
+lab_conn = tk.Label (fr_buttons, bg="#000000",fg="#FFFFFF", text="Press to save a copy locally", font=("Times New Roman", 14))
+pixelVirtual = tk.PhotoImage(width=1, height=1)
+btn_save = tk.Button(fr_buttons, text="Save", command=save_file, width=90, compound="c", image=pixelVirtual, bg="#a6a6a6")
+btn_open = tk.Button(fr_buttons, text="Open", command=open_file, width=90, compound="c", image=pixelVirtual, bg="#a6a6a6")
+
+btn_save.bind("<Enter>", on_enter)
+btn_save.bind("<Leave>", on_leave)
+
+lab_team.grid(row=0,column=0, sticky="ew", padx=5, pady=10)
+btn_open.grid(row=1, column=0, padx=5, pady=(50,20))
+lab_conn.grid(row=2,column=0, sticky="ew", padx=5, pady=(50,20))
+btn_save.grid(row=3, column=0, padx=5, pady=0)
+
 fr_buttons.grid(row=0, column=0, sticky="ns")
-
-txt_edit.grid(row=0, column=1, sticky="nsew")
+txt_edit.grid(row=0, column=1, sticky= "nsew")
+scrollb.grid(row=0, column=2, sticky=tk.NS)
 
 
 
 window.mainloop()
+
