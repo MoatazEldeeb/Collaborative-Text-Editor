@@ -18,6 +18,7 @@ def getPathOfFile(file):
     return fileId[1]
 
 def getIdOfFile(path):
-    c.execute("SELECT * FROM files WHERE file-path=:path", {'path':path})
+    c.execute('SELECT * FROM Files WHERE "file-path"=:path', {'path':path})
     fileId = c.fetchone()
+    print(fileId)
     return fileId[0]

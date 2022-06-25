@@ -1,5 +1,5 @@
 from collections import defaultdict
-import re
+import ctypes
 import socket
 import threading
 import tkinter as tk
@@ -17,15 +17,30 @@ FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
 SERVER = "192.168.1.102"
 ADDR = (SERVER, PORT)
-REQUEST_C_MSG = '!requestconnect'
+REQUEST_C_MSG = '!requestconnect' 
 connected = False
 ####################################################### FETCHING CHILD SERVER #######################################################
 def initConnSup():
     global  client, connected, closTime
+    ###
+    def get_id(self):
+        if hasattr(self, '_thread_id'):
+            return self._thread_id
+        for id, thread in threading._active.items():
+            if thread is self:
+                return id
+    def raise_exception(self):
+        thread_id = self.get_id()
+        resu = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id,
+              ctypes.py_object(SystemExit))
+        if resu > 1: 
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+            print('Failure in raising exception') 
+    ###
     ssclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     connected = False
     counter = 0
-    thread = threading.Thread(name="o",target=recievingUpdates, args= ())
+
     while True:
         if closTime:
             break
@@ -36,7 +51,15 @@ def initConnSup():
                 message = ssclient.recv(1024)
             except Exception as e:
                 print(e)
-                print("Failed to connect to super server.")
+                try:
+                    ssclient.shutdown(socket.SHUT_RDWR)
+                    ssclient.close()
+                    ssclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                except:
+                    pass
+                else:
+                    pass
+                print("Failed to connect to child server.")
                 time.sleep(5)
             else:
                 print("Connected to super server, retrieving child server.")
@@ -73,7 +96,18 @@ def initConnSup():
                         print("Connected!")
                         counter = 0
                         if connected:
-                            
+
+                            ###
+                            try:
+                                thread.raise_exception()
+                                thread.join()
+                            except:
+                                pass
+                            else:
+                                pass
+                            ###
+                            thread = threading.Thread(name="o",target=recievingUpdates,daemon=True, args= ())
+    
                             thread.start()
                         # print(messageFromChild.decode())
                         
@@ -339,6 +373,21 @@ def onModification(event):
         
 #Function to  recieve from server while connected
 def recievingUpdates():
+    ###
+    def get_id(self):
+        if hasattr(self, '_thread_id'):
+            return self._thread_id
+        for id, thread in threading._active.items():
+            if thread is self:
+                return id
+    def raise_exception(self):
+        thread_id = self.get_id()
+        resu = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id,
+              ctypes.py_object(SystemExit))
+        if resu > 1: 
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+            print('Failure in raising exception') 
+    ###
     global connected, client
     client.settimeout(5.0)
     while connected:
@@ -367,7 +416,7 @@ def on_closing():
     window.destroy()
     
 
-connThread = threading.Thread(target=initConnSup) # thread that handles connection and modifies global variable connected
+connThread = threading.Thread(target=initConnSup, daemon=True) # thread that handles connection and modifies global variable connected
 connThread.start()
 
 def on_enter(e):

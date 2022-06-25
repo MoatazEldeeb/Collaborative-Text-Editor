@@ -13,18 +13,36 @@ HEADER = 64
 PORT = 5060
 PPORT   = 6060
 SERVER = "192.168.1.102"
+SSERVER = "192.168.1.102"
+SSPORT = 5050
 PADDR   = (SERVER, PPORT)
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
+CHILD_REC_MSG = '!childupdate'
 
+###
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
+SSADDR = (SSERVER, SSPORT)
+connForUpdates = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+
+###
 theText = {}
 textCopy = {}
 filePaths ={}
 clients =[]
+
+
+# def reqUpdSS(id):
+#     message = "//" + str(id)
+#     send(message, connForUpdates)
+
+# def givUpdSS(text, id):
+#     message = "$$." + str(id) + "." + text
+#     send(message, connForUpdates)
+
 
 def pong():
     pserver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -34,11 +52,21 @@ def pong():
     pserver.listen()
 
     conn, addr = pserver.accept()
+    # connForUpdates.connect(SSADDR)
+    # connForUpdates.send(CHILD_REC_MSG.encode())
     print("Server connected to super server")
     while True:
-        message = conn.recv(1024)
-        print(message.decode())
-        conn.send(b'Pong!')
+        try:
+            message = conn.recv(1024)
+        except:
+            pass
+        else:
+            if(message == "Ping"):
+                print(message.decode())
+                conn.send(b'Pong!')
+            elif(message == ""): # receiving either 
+                pass
+
 
 
 #Function to apply differnences to text 
@@ -135,31 +163,40 @@ def handle_client(conn, addr):
                 send('Pong!', conn)
             
             elif is_json(msg): 
+                noExcept = True
                 d = json.loads(msg)
-                textCopy[filePath] = applyDiff(textCopy[filePath],d)
-                
-                
-                updates = dict(diff(theText[filePath],textCopy[filePath]))
-                delta = json.dumps(updates)
+                try:
+                    textCopy[filePath] = applyDiff(textCopy[filePath],d)
+                except Exception as e:
+                    # print(f"[EXCEPTION PRINTING] {e} [EXCPETION PRINTING]")
+                    print(f"[EXCEPTION] Trying to write into server without specifying file first [EXCEPTION]")
+                    noExcept = False
+                else:
+                    pass
+                if(noExcept):
+                        
+                    updates = dict(diff(theText[filePath],textCopy[filePath]))
+                    delta = json.dumps(updates)
 
-                theText[filePath] = applyDiff(theText[filePath],d)
-                fileId=dbconnection.getIdOfFile(filePath)
+                    theText[filePath] = applyDiff(theText[filePath],d)
+                    fileId=dbconnection.getIdOfFile(filePath)
+                    print("[FILE ID PRINTING]\n" , fileId , "\n[FILE ID PRINTING]")
 
-                updateSS(theText[filePath], fileId, )
-                # send the text with fileId to super server so super server can update other servers
+                    # updateSS(theText[filePath], fileId, )
+                    # send the text with fileId to super server so super server can update other servers
 
-                
-                for c in clients:
-                    fi = filePaths[c.getpeername()]
-                    print("fi ===" ,fi)
-                    for cli,f in filePaths.items():
-                        print("f === ",f)
-                        if (f==fi) and (cli != c.getpeername()) and (conn.getpeername() != c.getpeername()):
-                            send(delta, c)
-                            # c.send(delta.encode(FORMAT))
-                   
-                            
-                textCopy[filePath] = theText[filePath]
+                    
+                    for c in clients:
+                        fi = filePaths[c.getpeername()]
+                        print("fi ===" ,fi)
+                        for cli,f in filePaths.items():
+                            print("f === ",f)
+                            if (f==fi) and (cli != c.getpeername()) and (conn.getpeername() != c.getpeername()):
+                                send(delta, c)
+                                # c.send(delta.encode(FORMAT))
+                    
+                                
+                    textCopy[filePath] = theText[filePath]
             elif msg =="send list of files":
                 filesList= dbconnection.getAllFileNames()
                 print(filesList)
@@ -168,15 +205,19 @@ def handle_client(conn, addr):
                 # conn.send((".."+filesListJson).encode(FORMAT))
 
             elif msg == "_SAVE":
-                
-                with open(filePaths[name], "w") as output_file:
-                    output_file.write(theText[filePath])
+                try:
+
+                    with open(filePaths[name], "w") as output_file:
+                        output_file.write(theText[filePath])
+                except Exception as e:
+                    # print(f"[EXCEPTION PRINTING] {e} [EXCEPTION PRINTING]")
+                    pass
                 pass
             else:
                 send("Message Recieved",conn)
                 # conn.send("Message Recieved".encode(FORMAT))
             print(f"[{addr}] {msg}")
-
+    print("\nDisconnecting")
     clients.remove(conn)    # remove client from list of clients!
     conn.shutdown(socket.SHUT_RDWR)
     conn.close()
@@ -195,13 +236,13 @@ def start():
     global clients
     server.listen()
     print(f"[LISTENING] Server is listening on {SERVER}")
-    myPong = threading.Thread(target=pong)
+    myPong = threading.Thread(target=pong, daemon=True)
     myPong.start()
     while True:
         
         conn, addr = server.accept()
         clients.append(conn)
-        thread = threading.Thread(target=handle_client, args= (conn,addr))
+        thread = threading.Thread(target=handle_client, daemon=True, args= (conn,addr))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
 

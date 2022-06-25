@@ -70,8 +70,9 @@ class CS:
         return self.addr[1]
 
 ADDRCS1 = ('192.168.1.102', 6060)     #SERVER 1
-ADDRCS2 = ('192.168.1.102', 6070)     #SERVER 2
+ADDRCS2 = ('192.168.24.128', 6070)     #SERVER 2
 ADDRCS3 = ('192.168.1.102', 6080)     #SERVER 3
+# SALIST = (ADDRCS1, ADDRCS2, ADDRCS3)
 CS1 = CS(ADDRCS1, False)
 CS2 = CS(ADDRCS2, False)
 CS3 = CS(ADDRCS3, False)
@@ -83,7 +84,8 @@ SERVER = "192.168.1.102"
 ADDR = (SERVER, PORT)
 EXTERNALIP = "41.45.195.172"
 #### SUPER SERVER ADDR ###
-
+REQUEST_C_MSG = '!requestconnect' 
+CHILD_REC_MSG = '!childupdate'
 
 def quickCheck(server):
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -113,7 +115,6 @@ def cs_handler(server, clr):
                     # print(f"{clr}[CONNECTING TO {addr}]{endc}")
                     client.connect(addr)
                     # print(client)
-
                 except Exception as e:
                     if(counter < 10):
                         # print(f"{clr}[TRIES = {counter}] Connection failed, trying again...\n{endc}")
@@ -134,26 +135,70 @@ def cs_handler(server, clr):
                 client.send(b'Ping')
                 # print(f"{clr}Ping{endc}")
                 client.settimeout(3.0)
-                message = client.recv(1024)
+                message = client.recv(1024).decode()
+                
+
             except:
                 # print(f"{clr}Server [{addr}] crashed{endc}")
 
                 return False
             else:
                 # print(message.decode())
+                ### in case a rare occasion of pinging happening at the same time as the server sending a request we do this: ###
+                if(message[:2] == "//"):
+                    fileId = int(message[2:]) # fileId = whatever is after the // turned into an int
+                    reqFile = upText[fileId-1]
+                    client.send(pickle.dumps(reqFile))
+                elif(message[:2] == "$$"):
+                    
+                    txtArr = message.split(".")
+                    fileId = int(txtArr[1])
+                    reqFile = upText[fileId-1]
+                    reqFile.uData(txtArr[2])
+                    print(f"update file[{fileId}]")
+                ### in case a rare occasion of pinging happening at the same time as the server sending a request we do this: ###
                 return True
 
     while True:
-        connected = tryConnect(myAddr, myAv, counter)
-        if((not connected) & myAv):
-            print(f"Server[{myAddr}] offline: {myAv}")
-            client.shutdown(socket.SHUT_RDWR)
-            client.close()
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            client.settimeout(30)
-        server.updateAv(connected)
-        myAv = connected
-        time.sleep(15)
+        client.settimeout(15.0)
+        try:
+            reqMsg = client.recv(1024)
+        except:
+            #timed out!
+            #or connection dropped
+
+            connected = tryConnect(myAddr, myAv, counter)
+            if((not connected) & myAv):
+                print(f"Server[{myAddr}] offline: {myAv}")
+                client.shutdown(socket.SHUT_RDWR)
+                client.close()
+                client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                client.settimeout(30)
+            server.updateAv(connected)
+            myAv = connected
+        else:
+            message = reqMsg.decode()
+            if(message[:2] == "//"):
+                fileId = int(message[2:]) # fileId = whatever is after the // turned into an int
+                reqFile = upText[fileId-1]
+                client.send(pickle.dumps(reqFile))
+            elif(message[:2] == "$$"):
+                
+                txtArr = message.split(".")
+                fileId = int(txtArr[1])
+                reqFile = upText[fileId-1]
+                reqFile.uData(txtArr[2])
+                print(f"update file[{fileId}]")
+        # connected = tryConnect(myAddr, myAv, counter)
+        # if((not connected) & myAv):
+        #     print(f"Server[{myAddr}] offline: {myAv}")
+        #     client.shutdown(socket.SHUT_RDWR)
+        #     client.close()
+        #     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #     client.settimeout(30)
+        # server.updateAv(connected)
+        # myAv = connected
+        # time.sleep(15)
 ######################################################### CHILD SERVER HANDLER #########################################################
 
 
@@ -165,28 +210,30 @@ def cs_handler(server, clr):
 
 
 
-def cs_sync_handler(server, clr):
-    endc = bcolors.ENDC                                                     # this handles updating the SS
-    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client.settimeout(5.0)
-    client.connect(server.addr)
+# def cs_sync_handler(server, clr):
+#     endc = bcolors.ENDC                                                     # this handles updating the SS
+#     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     client.settimeout(5.0)
+#     client.connect(server.addr)
     
-    while(server.av):
-        try:
-            msg = client.recv(1024) # wait forever message from server
-        except:
-            pass
-        else:
-            message = msg.decode()
-            if(message[:2] == "//"):
-                fileId = int(message[2:]) # fileId = whatever is after the // turned into an int
-                reqFile = upText[fileId-1]
-                client.send(pickle.dumps(reqFile))
-            elif(message[:2] == "$$"):
-                fileId = int(message[2:])
-                reqFile = upText[fileId-1]
-                reqFile.uData(message[3:])
-                print(f"update file[{fileId}]")
+#     while(server.av):
+#         try:
+#             msg = client.recv(1024) # wait forever message from server
+#         except:
+#             pass
+#         else:
+#             message = msg.decode()
+#             if(message[:2] == "//"):
+#                 fileId = int(message[2:]) # fileId = whatever is after the // turned into an int
+#                 reqFile = upText[fileId-1]
+#                 client.send(pickle.dumps(reqFile))
+#             elif(message[:2] == "$$"):
+                
+#                 txtArr = message.split(".")
+#                 fileId = int(txtArr[1])
+#                 reqFile = upText[fileId-1]
+#                 reqFile.uData(txtArr[2])
+#                 print(f"update file[{fileId}]")
                 
 ########################################################### CHILD SERVER SYNC ###########################################################
 
@@ -229,6 +276,12 @@ while True:
     #Check if client is local or not
     # set counter to 0
     clientHandled = False
+    ### CHECK IF IT'S A CLIENT OR A CHILD SERVER REQUESTING A CONNECTION ###
+    # message = clientSocket.recv(1024).decode()
+    # if(message == CHILD_REC_MSG):
+        # threading.Thread(target=cs_sync_handler, args=(clientSocket, clientAddr,))
+    ### CHECK IF IT'S A CLIENT OR A CHILD SERVER REQUESTING A CONNECTION ###
+
     claddr1 = clientAddr[0].split(".")[0]
     claddr2 = clientAddr[0].split(".")[1]
     if((claddr1 == "192") & (claddr2 == "168")):    # client is local
