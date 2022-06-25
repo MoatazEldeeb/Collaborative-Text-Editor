@@ -3,6 +3,7 @@ import time
 import socket
 import threading
 import queue as q
+import pickle
 import os
 
 ### Creating a pipeline for servers ###
@@ -11,6 +12,33 @@ pipeline.put(0)
 pipeline.put(1)
 pipeline.put(2)
 ### Creating a pipeline for servers ###
+
+###
+class fileObj:
+    def __init__(self, data):
+        self.data = data
+        self.upd = False
+    def uData(self, data):
+        self.data = data
+        self.upd = True
+
+file1Obj = fileObj("")
+file2Obj = fileObj("")
+
+upText = [file1Obj, file2Obj] # a list of two texts (for the two files currently, can be modified later to apply to dynamic file creation with database)
+# on first open lel ss
+
+# cs func
+    # check for text of test1.txt at super server
+        # if text exists = take text
+        # if no text exists, read local, send text to ss
+# on mod
+# cs send to ss with counter
+# ss save mod with time on corresponding ids
+# every file saved has a unique id
+# for example, test.txt = 0(+1)
+# test1.txt = 1(+1)
+###
 
 class bcolors:
     HEADER = '\033[95m'
@@ -128,6 +156,41 @@ def cs_handler(server, clr):
         time.sleep(15)
 ######################################################### CHILD SERVER HANDLER #########################################################
 
+
+########################################################### CHILD SERVER SYNC ###########################################################
+
+# while server.av = connected
+#       listen(//{fileId})
+#  connection.send(pickle.dumps(upText[fileId]))
+
+
+
+def cs_sync_handler(server, clr):
+    endc = bcolors.ENDC                                                     # this handles updating the SS
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.settimeout(5.0)
+    client.connect(server.addr)
+    
+    while(server.av):
+        try:
+            msg = client.recv(1024) # wait forever message from server
+        except:
+            pass
+        else:
+            message = msg.decode()
+            if(message[:2] == "//"):
+                fileId = int(message[2:]) # fileId = whatever is after the // turned into an int
+                reqFile = upText[fileId-1]
+                client.send(pickle.dumps(reqFile))
+            elif(message[:2] == "$$"):
+                fileId = int(message[2:])
+                reqFile = upText[fileId-1]
+                reqFile.uData(message[3:])
+                print(f"update file[{fileId}]")
+                
+########################################################### CHILD SERVER SYNC ###########################################################
+
+
 ############################################################# SERVER STATUS ############################################################
 def server_status():
     while True:
@@ -142,6 +205,7 @@ def server_status():
 ############################################################# SERVER STATUS ############################################################
 
 
+############################################################# THREAD CODE ##############################################################
 t1 = threading.Thread(target=cs_handler, args=(CS1,bcolors.OKBLUE,))
 t2 = threading.Thread(target=cs_handler, args=(CS2,bcolors.OKCYAN,))
 t3 = threading.Thread(target=cs_handler, args=(CS3,bcolors.HEADER,))
@@ -151,13 +215,15 @@ t1.start()
 t2.start()
 t3.start()
 sst.start()
+############################################################# THREAD CODE ##############################################################
 
+
+####################################################### CLIENT CONNECTION HANDLER ######################################################
+# This is handled by the main thread, since this is the main function of the super server.
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 server.listen()
 
-####################################################### CLIENT CONNECTION HANDLER ######################################################
-# This is handled by the main thread, since this is the main function of the super server.
 while True:
     clientSocket, clientAddr = server.accept()
     #Check if client is local or not

@@ -7,7 +7,7 @@ import threading
 import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import json
-import dbconnection
+import dbconnection # we need to add this to ss
 
 HEADER = 64
 PORT = 5060
@@ -111,7 +111,8 @@ def handle_client(conn, addr):
                     # read text from saved file locally, and send it to super server
 
                 fileId = int(msg[2:])
-                print("FILE ID",fileId)
+                print("FILE ID",fileId) # what does this print? (prints id in integers of 1 to k representing file in db)
+                # checkForText(fileId) # -> undefined function yet, will go to ss to check for text
                 filePath=dbconnection.getPathOfFile(fileId)
                 # filePath = msg
                 print(f"[{addr}] Opened file: {filePath}")
@@ -142,6 +143,9 @@ def handle_client(conn, addr):
                 delta = json.dumps(updates)
 
                 theText[filePath] = applyDiff(theText[filePath],d)
+                fileId=dbconnection.getIdOfFile(filePath)
+
+                updateSS(theText[filePath], fileId, )
                 # send the text with fileId to super server so super server can update other servers
 
                 
