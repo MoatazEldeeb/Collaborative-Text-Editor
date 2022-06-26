@@ -22,32 +22,20 @@ connected = False
 ####################################################### FETCHING CHILD SERVER #######################################################
 def initConnSup():
     global  client, connected, closTime
-    ###
-    def get_id(self):
-        if hasattr(self, '_thread_id'):
-            return self._thread_id
-        for id, thread in threading._active.items():
-            if thread is self:
-                return id
-    def raise_exception(self):
-        thread_id = self.get_id()
-        resu = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id,
-              ctypes.py_object(SystemExit))
-        if resu > 1: 
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
-            print('Failure in raising exception') 
-    ###
     ssclient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     connected = False
     counter = 0
 
     while True:
         if closTime:
+            print(f"Breaking")
             break
         if not connected:    
             
             try:
+                print(f"Trying to connect")
                 ssclient.connect(ADDR)
+                ssclient.send(REQUEST_C_MSG.encode())
                 message = ssclient.recv(1024)
             except Exception as e:
                 print(e)
@@ -417,6 +405,7 @@ def on_closing():
     
 
 connThread = threading.Thread(target=initConnSup, daemon=True) # thread that handles connection and modifies global variable connected
+print(f"Starting init conn")
 connThread.start()
 
 def on_enter(e):
@@ -448,6 +437,8 @@ pixelVirtual = tk.PhotoImage(width=1, height=1)
 btn_save = tk.Button(fr_buttons, text="Save", command=save_file, width=90, compound="c", image=pixelVirtual, bg="#a6a6a6")
 btn_open = tk.Button(fr_buttons, text="Open", command=open_file, width=90, compound="c", image=pixelVirtual, bg="#a6a6a6")
 
+btn_open.bind("<Enter>", on_enter)
+btn_open.bind("<Leave>", on_leave)
 btn_save.bind("<Enter>", on_enter)
 btn_save.bind("<Leave>", on_leave)
 

@@ -1,10 +1,8 @@
 from collections import defaultdict
-from concurrent.futures import thread
 import difflib
-import os
+import pickle
 import socket
 import threading
-import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import json
 import dbconnection # we need to add this to ss
@@ -19,13 +17,24 @@ PADDR   = (SERVER, PPORT)
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 DISCONNECT_MSG = '!disconnect'
+CHILD_UPD_LINK = '!childstream'
 CHILD_REC_MSG = '!childupdate'
 
 ###
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 SSADDR = (SSERVER, SSPORT)
+###
 connForUpdates = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+recvForUpdates = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+class fileObj:
+    def __init__(self, data):
+        self.data = data
+        self.upd = False
+    def uData(self, data):
+        self.data = data
+        self.upd = True
+###
 
 
 ###
@@ -33,6 +42,20 @@ theText = {}
 textCopy = {}
 filePaths ={}
 clients =[]
+
+
+### THREAD MANAGER ###
+# class Session:
+#     def __init__(self, curr):
+#         self.curr = curr
+#     def incSession(self):
+#         self.curr += 1
+#     def getSession(self):
+#         return self.session
+#     def copy(self):
+#         return Session(self.curr)
+# servSession = Session(0)
+### THREAD MANAGER ###
 
 
 # def reqUpdSS(id):
@@ -43,6 +66,82 @@ clients =[]
 #     message = "$$." + str(id) + "." + text
 #     send(message, connForUpdates)
 
+def recvUpdFromSS():
+    global theText,textCopy,filePaths,clients
+
+    while True:
+        fileId = recvForUpdates.recv(1024).decode()
+        try:
+            fileId = int(fileId)
+        except:
+            print("this shouldn't be here")
+            print(fileId)
+            continue
+        else:
+            pass # this is not finished, all code should be here
+        filePath = dbconnection.getPathOfFile(fileId)
+        item = recvForUpdates.recv(4096)
+        item = json.loads(item)
+        if filePath in filePaths.values():
+            theText[filePath] = applyDiff(textCopy[filePath], item)
+            textCopy[filePath] = theText[filePath]
+            for c in clients:
+                fi = filePath
+                print("fi ===" ,fi)
+                for f in filePaths.values():
+                    print("f === ",f)
+                    if (f==fi):
+                        send(item, c)
+                        # c.send(delta.encode(FORMAT))
+
+        # if filePath in filePaths.values():
+        #     pass
+        #     for c in clients:
+        #         send(item, c)
+        # else:
+
+        #     with open(filePath, "w") as output_file:
+        #         theText[filePath] = applyDiff(theText[filePath], item) # SHOULD BE LATER
+        #         textCopy[filePath] = theText[filePath]
+        #         temp = '$'+str(theText[filePath])
+        #         send(temp,conn)
+                
+                            # c.send(delta.encode(FORMAT))
+                # conn.send(temp.encode(FORMAT))
+        
+        applyDiff()
+
+def updateServerText(fileId, diff):
+    msgToSend = "$$" + str(fileId)
+    connForUpdates.send(msgToSend.encode())
+    message = connForUpdates.recv(1024).decode()
+    print(message) # should be !Confirm
+    connForUpdates.send(diff.encode())
+
+
+def checkServerFile(fileId):
+    msgToSend = "//" + str(fileId)
+    print(f"[PRINTING CONNECTION]\n{connForUpdates}\n[PRINTING CONNECTION]")
+    connForUpdates.send(msgToSend.encode())
+    connForUpdates.settimeout(0.5)
+    while True:
+        
+        try:
+            item = connForUpdates.recv(4096)
+        except:
+            break
+        else:
+            item += item
+    print(f"Pickling items into an object \n[{item}]")
+    item = pickle.loads(item)
+    print(f"Finished pickling items \n[{item}]")
+
+    if(item.upd):
+        return (True, item.data)
+    else:
+        return (False, None)
+        
+
 
 def pong():
     pserver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,22 +149,38 @@ def pong():
     pserver.bind(PADDR)
 
     pserver.listen()
-
     conn, addr = pserver.accept()
+    connForUpdates.connect(SSADDR)
+    connForUpdates.send(CHILD_REC_MSG.encode())
+    message = connForUpdates.recv(1024)
+    print(message.decode()) # should be !Confirmed_CS_Req
+    sndmsg = SERVER + ":" + str(PPORT)
+    connForUpdates.send(sndmsg.encode())
+    message = connForUpdates.recv(1024)
+    print(message.decode()) # should be !Confirmed_CS_Req
+
+    
     # connForUpdates.connect(SSADDR)
     # connForUpdates.send(CHILD_REC_MSG.encode())
+    
+
+ 
+    print("Trying to connect...")
+    recvForUpdates.connect(SSADDR)
+    threading.Thread(target=recvUpdFromSS).start()
+    print("Connected?")
+    
     print("Server connected to super server")
-    while True:
+    while (True): #(True if session hasn't changed)
         try:
+            print("Waiting for ping")
             message = conn.recv(1024)
-        except:
+        except Exception as e:
+            print("FAILED: " + message.decode() + "\n" + f"[EXCEPTION] {e} [EXCEPTION]")
             pass
         else:
-            if(message == "Ping"):
-                print(message.decode())
-                conn.send(b'Pong!')
-            elif(message == ""): # receiving either 
-                pass
+            print(message.decode() + "Sending Pong!")
+            conn.send(b'Pong!')
 
 
 
@@ -105,7 +220,7 @@ def send(msg, c):
     # c.send(sendLength)
     c.send(message)
 
-# Threaded funtion (one for every client connection) to handle syncronization
+# Threaded funtion (one for every client connection) to handle synchronization
 def handle_client(conn, addr):
     global theText,textCopy,filePaths,clients
     print(f"[NEW CONNECTION] {addr} connected.")
@@ -144,6 +259,7 @@ def handle_client(conn, addr):
                 filePath=dbconnection.getPathOfFile(fileId)
                 # filePath = msg
                 print(f"[{addr}] Opened file: {filePath}")
+                checkServerFile(fileId) # IMPORTANT TO STOP HERE
                 if filePath in filePaths.values():
                     filePaths[conn.getpeername()] = filePath
                     temp = '$'+str(theText[filePath])
@@ -164,6 +280,7 @@ def handle_client(conn, addr):
             
             elif is_json(msg): 
                 noExcept = True
+
                 d = json.loads(msg)
                 try:
                     textCopy[filePath] = applyDiff(textCopy[filePath],d)
@@ -174,7 +291,7 @@ def handle_client(conn, addr):
                 else:
                     pass
                 if(noExcept):
-                        
+                    updateServerText(fileId, msg)
                     updates = dict(diff(theText[filePath],textCopy[filePath]))
                     delta = json.dumps(updates)
 
@@ -240,7 +357,7 @@ def start():
     myPong.start()
     while True:
         
-        conn, addr = server.accept()
+        conn, addr = server.accept() 
         clients.append(conn)
         thread = threading.Thread(target=handle_client, daemon=True, args= (conn,addr))
         thread.start()
