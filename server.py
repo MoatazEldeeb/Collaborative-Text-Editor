@@ -70,46 +70,30 @@ def recvUpdFromSS():
     global theText,textCopy,filePaths,clients
 
     while True:
-        fileId = recvForUpdates.recv(1024).decode()
         try:
-            fileId = int(fileId)
+            
+            fileId = recvForUpdates.recv(1024).decode()
+            
         except:
-            print("this shouldn't be here")
-            print(fileId)
-            continue
+            print("Error receiving from [recvForUpdates]")
+            break
         else:
-            pass # this is not finished, all code should be here
-        filePath = dbconnection.getPathOfFile(fileId)
-        item = recvForUpdates.recv(4096)
-        item = json.loads(item)
-        if filePath in filePaths.values():
-            theText[filePath] = applyDiff(textCopy[filePath], item)
-            textCopy[filePath] = theText[filePath]
-            for c in clients:
-                fi = filePath
-                print("fi ===" ,fi)
-                for f in filePaths.values():
-                    print("f === ",f)
-                    if (f==fi):
-                        send(item, c)
-                        # c.send(delta.encode(FORMAT))
-
-        # if filePath in filePaths.values():
-        #     pass
-        #     for c in clients:
-        #         send(item, c)
-        # else:
-
-        #     with open(filePath, "w") as output_file:
-        #         theText[filePath] = applyDiff(theText[filePath], item) # SHOULD BE LATER
-        #         textCopy[filePath] = theText[filePath]
-        #         temp = '$'+str(theText[filePath])
-        #         send(temp,conn)
-                
-                            # c.send(delta.encode(FORMAT))
-                # conn.send(temp.encode(FORMAT))
-        
-        applyDiff()
+            fileId = int(fileId)
+            filePath = dbconnection.getPathOfFile(fileId)
+            item = recvForUpdates.recv(4096).decode()
+            item = json.loads(item)
+            if filePath in filePaths.values():
+                theText[filePath] = applyDiff(textCopy[filePath], item)
+                textCopy[filePath] = theText[filePath]
+                for c in clients:
+                    fi = filePath
+                    print("fi ===" ,fi)
+                    for f in filePaths.values():
+                        print("f === ",f)
+                        if (f==fi):
+                            send(item, c)
+            
+            applyDiff()
 
 def updateServerText(fileId, diff):
     msgToSend = "$$" + str(fileId)
@@ -167,7 +151,7 @@ def pong():
  
     print("Trying to connect...")
     recvForUpdates.connect(SSADDR)
-    threading.Thread(target=recvUpdFromSS).start()
+    threading.Thread(target=recvUpdFromSS, daemon=True).start()
     print("Connected?")
     
     print("Server connected to super server")
@@ -177,7 +161,7 @@ def pong():
             message = conn.recv(1024)
         except Exception as e:
             print("FAILED: " + message.decode() + "\n" + f"[EXCEPTION] {e} [EXCEPTION]")
-            pass
+            break
         else:
             print(message.decode() + "Sending Pong!")
             conn.send(b'Pong!')

@@ -8,6 +8,7 @@ import json
 import os
 import difflib
 from collections import defaultdict
+from xmlrpc.client import TRANSPORT_ERROR
 
 cs1q = q.Queue()
 cs2q = q.Queue()
@@ -216,14 +217,19 @@ def cs_handler(server, clr):
 def cs_feed(client, addr, server, queue):
     print("STARTING CS_FEED THREAD")
     while(server.av == True):
-        fileId = queue.get(True)
-        
-        print(f"Sending [{fileId}] to [{addr}]")
-        client.send(str(fileId).encode())
-        item = json.dumps(item)
-        
-        print(f"Sending [{item}] to [{addr}]")
-        client.send(item)
+        try:
+            fileId = queue.get(True, 10)
+        except:
+            continue
+        else:
+
+            print(f"Sending [{fileId}] to [{addr}]")
+            client.send(str(fileId).encode())
+            item = queue.get(True)
+            item = json.dumps(item)
+            
+            print(f"Sending [{item}] to [{addr}]")
+            client.send(item.encode())
     print("ENDING CS_FEED THREAD")
 
 def cs_sync_handler(client, addr, server, myId):
@@ -234,14 +240,15 @@ def cs_sync_handler(client, addr, server, myId):
     print("CS_SYNC_HANDLER STARTING LOOP")
     while(server.av == True):
         try:
-            msg = client.recv(1024) # wait forever message from server
+            msg = client.recv(1024) # wait forever for message from server
         except:
-            pass
+            continue
         else:
             
             message = msg.decode()
-            print(f"[PRINTING MESSAGE RECEIVED IN CS_SYNC_HANDLER]\n{message}\n[PRINTING MESSAGE RECEIVED IN CS_SYNC_HANDLER]")
-
+            print(f"[PRINTING MESSAGE RECEIVED IN CS_SYNC_HANDLER] [{message}] [PRINTING MESSAGE RECEIVED IN CS_SYNC_HANDLER]")
+            if(message == ""):
+                break
             if(message[:2] == "//"):
                 fileId = int(message[2:]) # fileId = whatever is after the // turned into an int
                 reqFile = upText[fileId-1]
@@ -261,8 +268,10 @@ def cs_sync_handler(client, addr, server, myId):
                 upText[fileId-1].uData(applyDiff(upText[fileId-1],item))
                 print(f"update file[{fileId}]")
                 for j in range(3):
+                    print(f"Going for qList[{j}]")
                     if(j != myId):
                         if(SERVERS[j].av):
+                            print(f"Inserting [{fileId}] & [{item}] into qList[{j}]")
                             qList[j].put(fileId)
                             qList[j].put(item)
     print("CS_SYNC_HANDLER ENDING LOOP")
@@ -285,10 +294,10 @@ def server_status():
 
 
 ############################################################# THREAD CODE ##############################################################
-t1 = threading.Thread(target=cs_handler, args=(CS1,bcolors.OKBLUE,))
-t2 = threading.Thread(target=cs_handler, args=(CS2,bcolors.OKCYAN,))
-t3 = threading.Thread(target=cs_handler, args=(CS3,bcolors.HEADER,))
-sst = threading.Thread(target=server_status)
+t1 = threading.Thread(target=cs_handler, args=(CS1,bcolors.OKBLUE,), daemon= True)
+t2 = threading.Thread(target=cs_handler, args=(CS2,bcolors.OKCYAN,), daemon= True)
+t3 = threading.Thread(target=cs_handler, args=(CS3,bcolors.HEADER,), daemon= True)
+sst = threading.Thread(target=server_status, daemon= True)
 
 t1.start()
 t2.start()
@@ -311,7 +320,7 @@ while True:
     message = clientSocket.recv(1024).decode()
     if(message == CHILD_REC_MSG):
         print("client is a child server...")
-        clientSocket.send(CHILD_CONF.encode()) # hi :) :D wifi dropped
+        clientSocket.send(CHILD_CONF.encode()) 
         message = clientSocket.recv(1024).decode() # should be XYZ.XYZ.XYZ.XYZ:ABCD
         message = message.split(":")
         mIP = message[0]
@@ -321,10 +330,10 @@ while True:
             if (mAddr == SERVERS[i].addr) :
                 print(f"[mAddr] = {mAddr}\n[server addr] = {SERVERS[i].addr}")
                 clientSocket.send(CHILD_CONF.encode())
-                threading.Thread(target=cs_sync_handler, args=(clientSocket, clientAddr, SERVERS[i], i)).start()
+                threading.Thread(target=cs_sync_handler, args=(clientSocket, clientAddr, SERVERS[i], i), daemon= True).start()
                 print("\nWaiting for connection...\n")
                 clientSocket2, clientAddr2 = server.accept()
-                threading.Thread(target=cs_feed, args=(clientSocket2, clientAddr2, SERVERS[i], qList[i]))
+                threading.Thread(target=cs_feed, args=(clientSocket2, clientAddr2, SERVERS[i], qList[i]), daemon= True).start()
             else:
                 clientSocket.send(b'FAILED:No server found...')
         
@@ -366,7 +375,8 @@ while True:
                 currServer = SERVERS[turnOf]
                 if(currServer.av): # check the server's availability
                     if(quickCheck(currServer)):
-                        addrInBytes = (EXTERNALIP + ":" + str(currServer.getPort())).encode()
+                        addrInBytes = (EXTERNALIP + ":" + str(currServer.getPort()-1000)).encode()
+                        print(f"Sending [{addrInBytes}] to [{clientAddr}]")
                         clientSocket.send(addrInBytes) # if available give server external ip and port
                         clientHandled = True
 
