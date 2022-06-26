@@ -111,27 +111,7 @@ def initConnSup():
                     pass
             else:
                 time.sleep(3)
-        #     if(counter == 5):
-        #         client.shutdown(socket.SHUT_RDWR)
-        #         client.close()
-        #         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #         connected = False
-        #     else:
-        #         try:
-        #             # client.send(b'Ping')
-        #             send("Ping")
-        #             # print(f"{clr}Ping{endc}")
-                    
-        #             # message = client.recv(1024)
-        #             time.sleep(3)
-        #         except:
-        #             # print(f"{clr}Server [{addr}] crashed{endc}")
-        #             counter += 1
-                    
-        #         else:
-        #             # print(message.decode())
-        #             counter = 0
-        #             connected = True
+
 
 ####################################################### FETCHING CHILD SERVER #######################################################
 
@@ -161,7 +141,16 @@ def applyDiff(text , changes):
     letters=0
     print("Applying Diff => ", changes)
     x = list(changes.keys())
-    y= list(changes.values())[0]
+    noex = True
+    while noex:
+        try:
+            y= list(changes.values())[0]
+        except:
+            print("Failed")
+            continue
+        else:
+            print("Success")
+            break
     if "delete" in x:
         enters = (y.count('\n'))
         letters= len(y) - enters
@@ -213,6 +202,17 @@ def update(recieved):
         i= i.split(".")
         txt_edit.delete(1.0, tk.END)
         diff = json.loads(recieved)
+        noex = True
+        while noex:                         ### REMOVE IF CRASH
+            try:
+                if(is_json(diff)):
+                    diff = json.loads(diff)
+                else:
+                    noex = False                ### REMOVE IF CRASH
+            except:
+                noex = False
+            else:
+                pass
         print("[diff] = ",diff)
 
         textCopy,enters,letters = applyDiff(textCopy,diff)
@@ -270,7 +270,8 @@ def is_json(myjson):
         json.loads(myjson)
     except ValueError as e:
         return False
-    return True
+    else:
+        return True
 
 #function to be called when open file button is clicked
 def open_file():
@@ -361,21 +362,6 @@ def onModification(event):
         
 #Function to  recieve from server while connected
 def recievingUpdates():
-    ###
-    def get_id(self):
-        if hasattr(self, '_thread_id'):
-            return self._thread_id
-        for id, thread in threading._active.items():
-            if thread is self:
-                return id
-    def raise_exception(self):
-        thread_id = self.get_id()
-        resu = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id,
-              ctypes.py_object(SystemExit))
-        if resu > 1: 
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
-            print('Failure in raising exception') 
-    ###
     global connected, client
     client.settimeout(5.0)
     while connected:

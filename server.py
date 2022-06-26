@@ -80,18 +80,20 @@ def recvUpdFromSS():
         else:
             fileId = int(fileId)
             filePath = dbconnection.getPathOfFile(fileId)
-            item = recvForUpdates.recv(4096).decode()
-            item = json.loads(item)
+            item = json.loads(recvForUpdates.recv(4096).decode())
             if filePath in filePaths.values():
                 theText[filePath] = applyDiff(textCopy[filePath], item)
                 textCopy[filePath] = theText[filePath]
+                print(f"The text = [{theText[filePath]}")
                 for c in clients:
                     fi = filePath
                     print("fi ===" ,fi)
                     for f in filePaths.values():
                         print("f === ",f)
                         if (f==fi):
-                            send(item, c)
+                            msgToSend = json.dumps(item)
+                            c.send(msgToSend.encode())
+                            # send(item, c)
             
             applyDiff()
 
@@ -214,7 +216,7 @@ def handle_client(conn, addr):
     connected = True
     while connected:
         # msgLength = conn.recv(HEADER).decode(FORMAT)
-        msg = conn.recv(1024).decode(FORMAT)
+        msg = conn.recv(4096).decode(FORMAT)
         
         # if msgLength:
         if msg:
@@ -276,12 +278,13 @@ def handle_client(conn, addr):
                     pass
                 if(noExcept):
                     updateServerText(fileId, msg)
+                    print("Updating server text with [{msg}]")
                     updates = dict(diff(theText[filePath],textCopy[filePath]))
                     delta = json.dumps(updates)
 
                     theText[filePath] = applyDiff(theText[filePath],d)
                     fileId=dbconnection.getIdOfFile(filePath)
-                    print("[FILE ID PRINTING]\n" , fileId , "\n[FILE ID PRINTING]")
+                    # print("[FILE ID PRINTING]\n" , fileId , "\n[FILE ID PRINTING]")
 
                     # updateSS(theText[filePath], fileId, )
                     # send the text with fileId to super server so super server can update other servers
@@ -293,7 +296,8 @@ def handle_client(conn, addr):
                         for cli,f in filePaths.items():
                             print("f === ",f)
                             if (f==fi) and (cli != c.getpeername()) and (conn.getpeername() != c.getpeername()):
-                                send(delta, c)
+                                # send(delta, c)
+                                c.send(delta.encode())
                                 # c.send(delta.encode(FORMAT))
                     
                                 
